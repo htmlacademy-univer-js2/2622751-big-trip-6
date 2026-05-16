@@ -1,7 +1,7 @@
-import AbstractView from './abstract-view.js';
+import AbstractView from '../framework/view/abstract-view.js';
 
 export default class FiltersView extends AbstractView {
-  getTemplate() {
+  get template() {
     return `
       <div class="trip-controls__filters">
         <h2 class="visually-hidden">Filter events</h2>

@@ -1,7 +1,9 @@
-import AbstractView from './abstract-view.js';
+// src/view/sort-view.js
+
+import AbstractView from '../framework/view/abstract-view.js';
 
 export default class SortView extends AbstractView {
-  getTemplate() {
+  get template() {
     return `
       <form class="trip-events__trip-sort  trip-sort" action="#" method="get">
         <div class="trip-sort__item  trip-sort__item--day">
@@ -13,7 +15,7 @@ export default class SortView extends AbstractView {
           <label class="trip-sort__btn" for="sort-event">Event</label>
         </div>
         <div class="trip-sort__item  trip-sort__item--time">
-          <input id="sort-time" class="trip-sort__input  visually-hidden" type="radio" name="trip-sort" value="time">
+          <input id="sort-time" class="trip-sort__input  visually-hidden" type="radio" name="trip-sort" value="time" disabled>
           <label class="trip-sort__btn" for="sort-time">Time</label>
         </div>
         <div class="trip-sort__item  trip-sort__item--price">
