@@ -1,4 +1,4 @@
-import AbstractView from './abstract-view.js';
+import AbstractView from '../framework/view/abstract-view.js';
 
 const getDuration = (dateFrom, dateTo) => {
   const diff = new Date(dateTo) - new Date(dateFrom);
@@ -13,14 +13,17 @@ const getFormattedDate = (date) => {
 };
 
 export default class PointView extends AbstractView {
-  constructor(waypoint, destination, offers) {
+  constructor(waypoint, destination, offers, onEditClick) {
     super();
     this._waypoint = waypoint;
     this._destination = destination;
     this._offers = offers;
+    this._onEditClick = onEditClick;
+    
+    this._handleEditClick = this._handleEditClick.bind(this);
   }
 
-  getTemplate() {
+  get template() {
     const { type, dateFrom, dateTo, basePrice, isFavorite } = this._waypoint;
     const { name: destinationName } = this._destination;
     
@@ -78,5 +81,14 @@ export default class PointView extends AbstractView {
         </button>
       </div>
     `;
+  }
+
+  _handleEditClick(evt) {
+    evt.preventDefault();
+    this._onEditClick();
+  }
+
+  setEditClickHandler() {
+    this.element.querySelector('.event__rollup-btn').addEventListener('click', this._handleEditClick);
   }
 }

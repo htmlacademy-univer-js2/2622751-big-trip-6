@@ -2,7 +2,7 @@ import FiltersView from '../view/filters-view.js';
 import SortView from '../view/sort-view.js';
 import PointView from '../view/point-view.js';
 import EditFormView from '../view/edit-form-view.js';
-import { render, RenderPosition } from '../render.js';
+import { render, replace, remove, RenderPosition } from '../framework/render.js';
 
 export default class TripPresenter {
   constructor(container, tripModel) {
@@ -10,7 +10,8 @@ export default class TripPresenter {
     this.tripModel = tripModel;
     this.filtersComponent = null;
     this.sortComponent = null;
-    this.pointComponents = [];
+    this.pointComponents = new Map(); // храним компоненты точек
+    this.currentEditForm = null; // текущая открытая форма редактирования
   }
 
   init() {
@@ -41,7 +42,7 @@ export default class TripPresenter {
     if (!pointsContainer) return;
 
     // Очищаем контейнер, но оставляем сортировку
-    const sortElement = this.sortComponent?.getElement();
+    const sortElement = this.sortComponent?.element;
     pointsContainer.innerHTML = '';
     if (sortElement) {
       pointsContainer.appendChild(sortElement);
@@ -51,22 +52,80 @@ export default class TripPresenter {
     
     if (waypoints.length === 0) return;
 
-    // Отрисовываем форму редактирования первой (на основе первой точки)
-    const firstWaypoint = waypoints[0];
-    const firstDestination = this.tripModel.getDestinationById(firstWaypoint.destinationId);
-    const firstOffers = this.tripModel.getOffersForWaypoint(firstWaypoint.id);
-    
-    const editForm = new EditFormView(firstWaypoint, firstDestination, firstOffers);
-    render(editForm, pointsContainer);
-
-    // Отрисовываем 3 точки маршрута
+    // Отрисовываем только точки маршрута (без формы редактирования)
     const waypointsToShow = waypoints.slice(0, 3);
     waypointsToShow.forEach((waypoint) => {
-      const destination = this.tripModel.getDestinationById(waypoint.destinationId);
-      const offers = this.tripModel.getOffersForWaypoint(waypoint.id);
-      const pointView = new PointView(waypoint, destination, offers);
-      render(pointView, pointsContainer);
-      this.pointComponents.push(pointView);
+      this.renderPoint(waypoint, pointsContainer);
     });
+  }
+
+  renderPoint(waypoint, container) {
+    const destination = this.tripModel.getDestinationById(waypoint.destinationId);
+    const offers = this.tripModel.getOffersForWaypoint(waypoint.id);
+    
+    const pointComponent = new PointView(
+      waypoint, 
+      destination, 
+      offers,
+      () => this.replacePointToEditForm(waypoint, destination, offers, pointComponent, container)
+    );
+    
+    render(pointComponent, container);
+    pointComponent.setEditClickHandler();
+    this.pointComponents.set(waypoint.id, pointComponent);
+  }
+
+  replacePointToEditForm(waypoint, destination, offers, pointComponent, container) {
+    // Если уже открыта какая-то форма, закрываем её
+    if (this.currentEditForm) {
+      this.closeEditForm();
+    }
+
+    const editForm = new EditFormView(
+      waypoint,
+      destination,
+      offers,
+      () => this.replaceEditFormToPoint(editForm, pointComponent, waypoint, destination, offers, container),
+      () => this.replaceEditFormToPoint(editForm, pointComponent, waypoint, destination, offers, container)
+    );
+
+    replace(editForm, pointComponent);
+    this.currentEditForm = editForm;
+    
+    editForm.setFormSubmitHandler();
+    editForm.setCancelClickHandler();
+    
+    // Добавляем обработчик на Esc
+    this._handleEscKeyDown = this._handleEscKeyDown.bind(this, editForm, pointComponent, waypoint, destination, offers, container);
+    document.addEventListener('keydown', this._handleEscKeyDown);
+  }
+
+  replaceEditFormToPoint(editForm, pointComponent, waypoint, destination, offers, container) {
+    if (!editForm || !pointComponent) return;
+    
+    replace(pointComponent, editForm);
+    this.currentEditForm = null;
+    
+    // Удаляем обработчик Esc
+    if (this._handleEscKeyDown) {
+      document.removeEventListener('keydown', this._handleEscKeyDown);
+    }
+  }
+
+  closeEditForm() {
+    if (this.currentEditForm) {
+      this.currentEditForm.element.remove();
+      this.currentEditForm = null;
+      if (this._handleEscKeyDown) {
+        document.removeEventListener('keydown', this._handleEscKeyDown);
+      }
+    }
+  }
+
+  _handleEscKeyDown(editForm, pointComponent, waypoint, destination, offers, container, evt) {
+    if (evt.key === 'Escape' || evt.key === 'Esc') {
+      evt.preventDefault();
+      this.replaceEditFormToPoint(editForm, pointComponent, waypoint, destination, offers, container);
+    }
   }
 }
