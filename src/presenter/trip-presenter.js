@@ -3,7 +3,7 @@ import SortView from '../view/sort-view.js';
 import PointView from '../view/point-view.js';
 import EditFormView from '../view/edit-form-view.js';
 import EmptyListView from '../view/empty-list-view.js';
-import { render, replace, remove, RenderPosition } from '../framework/render.js';
+import { render, replace, RenderPosition } from '../framework/render.js';
 
 export default class TripPresenter {
   constructor(container, tripModel) {
@@ -27,7 +27,7 @@ export default class TripPresenter {
       this.tripModel.setFilter(filterType);
       this.renderTripEvents();
     });
-    
+
     const filtersContainer = document.querySelector('.trip-controls__filters');
     if (filtersContainer) {
       filtersContainer.innerHTML = '';
@@ -42,7 +42,7 @@ export default class TripPresenter {
       this.tripModel.setSort(sortType);
       this.renderTripEvents();
     });
-    
+
     const sortContainer = document.querySelector('.trip-events');
     if (sortContainer && this.sortComponent) {
       render(this.sortComponent, sortContainer, RenderPosition.AFTERBEGIN);
@@ -52,23 +52,21 @@ export default class TripPresenter {
 
   renderTripEvents() {
     const pointsContainer = document.querySelector('.trip-events');
-    if (!pointsContainer) return;
+    if (!pointsContainer) {
+      return;
+    }
 
-    // Очищаем контейнер
     pointsContainer.innerHTML = '';
 
     const waypoints = this.tripModel.getWaypoints();
-    
-    // Если нет точек маршрута, показываем сообщение
+
     if (waypoints.length === 0) {
       this.renderEmptyList(pointsContainer);
       return;
     }
 
-    // Отрисовываем сортировку
     this.renderSort();
 
-    // Отрисовываем все точки маршрута
     waypoints.forEach((waypoint) => {
       this.renderPoint(waypoint, pointsContainer);
     });
@@ -82,20 +80,20 @@ export default class TripPresenter {
   renderPoint(waypoint, container) {
     const destination = this.tripModel.getDestinationById(waypoint.destinationId);
     const offers = this.tripModel.getOffersForWaypoint(waypoint.id);
-    
+
     const pointComponent = new PointView(
-      waypoint, 
-      destination, 
+      waypoint,
+      destination,
       offers,
       () => this.replacePointToEditForm(waypoint, destination, offers, pointComponent, container)
     );
-    
+
     render(pointComponent, container);
     pointComponent.setEditClickHandler();
     this.pointComponents.set(waypoint.id, pointComponent);
   }
 
-  replacePointToEditForm(waypoint, destination, offers, pointComponent, container) {
+  replacePointToEditForm(waypoint, destination, offers, pointComponent) {
     if (this.currentEditForm) {
       this.closeEditForm();
     }
@@ -104,26 +102,28 @@ export default class TripPresenter {
       waypoint,
       destination,
       offers,
-      () => this.replaceEditFormToPoint(editForm, pointComponent, waypoint, destination, offers, container),
-      () => this.replaceEditFormToPoint(editForm, pointComponent, waypoint, destination, offers, container)
+      () => this.replaceEditFormToPoint(editForm, pointComponent),
+      () => this.replaceEditFormToPoint(editForm, pointComponent)
     );
 
     replace(editForm, pointComponent);
     this.currentEditForm = editForm;
-    
+
     editForm.setFormSubmitHandler();
     editForm.setCancelClickHandler();
-    
-    this._handleEscKeyDown = this._handleEscKeyDown.bind(this, editForm, pointComponent, waypoint, destination, offers, container);
+
+    this._handleEscKeyDown = this._handleEscKeyDown.bind(this, editForm, pointComponent);
     document.addEventListener('keydown', this._handleEscKeyDown);
   }
 
-  replaceEditFormToPoint(editForm, pointComponent, waypoint, destination, offers, container) {
-    if (!editForm || !pointComponent) return;
-    
+  replaceEditFormToPoint(editForm, pointComponent) {
+    if (!editForm || !pointComponent) {
+      return;
+    }
+
     replace(pointComponent, editForm);
     this.currentEditForm = null;
-    
+
     if (this._handleEscKeyDown) {
       document.removeEventListener('keydown', this._handleEscKeyDown);
     }
@@ -139,10 +139,10 @@ export default class TripPresenter {
     }
   }
 
-  _handleEscKeyDown(editForm, pointComponent, waypoint, destination, offers, container, evt) {
+  _handleEscKeyDown(editForm, pointComponent, evt) {
     if (evt.key === 'Escape' || evt.key === 'Esc') {
       evt.preventDefault();
-      this.replaceEditFormToPoint(editForm, pointComponent, waypoint, destination, offers, container);
+      this.replaceEditFormToPoint(editForm, pointComponent);
     }
   }
 }

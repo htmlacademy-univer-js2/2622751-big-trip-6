@@ -19,23 +19,23 @@ export default class PointView extends AbstractView {
     this._destination = destination;
     this._offers = offers;
     this._onEditClick = onEditClick;
-    
+
     this._handleEditClick = this._handleEditClick.bind(this);
   }
 
   get template() {
     const { type, dateFrom, dateTo, basePrice, isFavorite } = this._waypoint;
     const { name: destinationName } = this._destination;
-    
+
     const startDate = new Date(dateFrom);
     const endDate = new Date(dateTo);
-    
+
     const formattedDate = getFormattedDate(dateFrom);
     const startTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const endTime = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const duration = getDuration(dateFrom, dateTo);
 
-    const offersHtml = this._offers.slice(0, 2).map(offer => `
+    const offersHtml = this._offers.slice(0, 2).map((offer) => `
       <li class="event__offer">
         <span class="event__offer-title">${offer.title}</span>
         +€${offer.price}

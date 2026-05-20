@@ -8,7 +8,7 @@ export default class EditFormView extends AbstractView {
     this._offers = offers;
     this._onFormSubmit = onFormSubmit;
     this._onCancelClick = onCancelClick;
-    
+
     this._handleFormSubmit = this._handleFormSubmit.bind(this);
     this._handleCancelClick = this._handleCancelClick.bind(this);
   }
@@ -16,14 +16,14 @@ export default class EditFormView extends AbstractView {
   get template() {
     const { type, dateFrom, dateTo, basePrice } = this._waypoint;
     const { name: destinationName, description, pictures } = this._destination;
-    
+
     const startDate = new Date(dateFrom);
     const endDate = new Date(dateTo);
-    
+
     const startDateValue = startDate.toISOString().slice(0, 16);
     const endDateValue = endDate.toISOString().slice(0, 16);
 
-    const offersHtml = this._offers.map(offer => `
+    const offersHtml = this._offers.map((offer) => `
       <div class="event__offer-selector">
         <input class="event__offer-checkbox visually-hidden" id="offer-${offer.id}" type="checkbox" name="offer" value="${offer.id}" checked>
         <label class="event__offer-label" for="offer-${offer.id}">
@@ -33,7 +33,7 @@ export default class EditFormView extends AbstractView {
       </div>
     `).join('');
 
-    const photosHtml = pictures.map(picture => `
+    const photosHtml = pictures.map((picture) => `
       <img class="event__photo" src="${picture.src}" alt="${picture.description}">
     `).join('');
 

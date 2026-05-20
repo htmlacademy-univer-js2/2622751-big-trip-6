@@ -20,19 +20,17 @@ export default class TripModel {
 
   getWaypoints() {
     let filteredWaypoints = [...this._waypoints];
-    
-    // Применяем фильтр
+
     const now = new Date();
     switch (this._activeFilter) {
       case 'future':
-        filteredWaypoints = filteredWaypoints.filter(waypoint => new Date(waypoint.dateFrom) > now);
+        filteredWaypoints = filteredWaypoints.filter((waypoint) => new Date(waypoint.dateFrom) > now);
         break;
       case 'past':
-        filteredWaypoints = filteredWaypoints.filter(waypoint => new Date(waypoint.dateTo) < now);
+        filteredWaypoints = filteredWaypoints.filter((waypoint) => new Date(waypoint.dateTo) < now);
         break;
     }
-    
-    // Применяем сортировку
+
     switch (this._activeSort) {
       case 'day':
         filteredWaypoints.sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
@@ -41,7 +39,7 @@ export default class TripModel {
         filteredWaypoints.sort((a, b) => b.basePrice - a.basePrice);
         break;
     }
-    
+
     return filteredWaypoints;
   }
 
@@ -54,7 +52,7 @@ export default class TripModel {
   }
 
   getDestinationById(id) {
-    return this._destinations.find(dest => dest.id === id);
+    return this._destinations.find((dest) => dest.id === id);
   }
 
   getFilters() {
