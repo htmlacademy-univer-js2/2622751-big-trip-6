@@ -14,7 +14,7 @@ export default class TripPresenter {
     this.sortComponent = null;
     this.emptyListComponent = null;
     this.pointPresenters = [];
-    this.currentSortComponent = null;
+    this.currentSortType = 'day'; // Сортировка по умолчанию
   }
 
   init() {
@@ -38,19 +38,16 @@ export default class TripPresenter {
   }
 
   renderSort() {
-    const sortItems = this.tripModel.getSort();
-    this.sortComponent = new SortView(sortItems, (sortType) => {
+    this.sortComponent = new SortView(this.currentSortType, (sortType) => {
+      if (this.currentSortType === sortType) return; // Не перерисовываем, если сортировка не изменилась
+      this.currentSortType = sortType;
       this.tripModel.setSort(sortType);
       this.renderTripEvents();
     });
 
     const sortContainer = document.querySelector('.trip-events');
     if (sortContainer) {
-      if (this.currentSortComponent) {
-        this.currentSortComponent.element.remove();
-      }
       render(this.sortComponent, sortContainer, RenderPosition.AFTERBEGIN);
-      this.currentSortComponent = this.sortComponent;
       this.sortComponent.setSortChangeHandler();
     }
   }
@@ -58,8 +55,6 @@ export default class TripPresenter {
   renderTripEvents() {
     const pointsContainer = document.querySelector('.trip-events');
     if (!pointsContainer) return;
-
-    const waypoints = this.tripModel.getWaypoints();
 
     // Уничтожаем старые презентеры
     this.pointPresenters.forEach(presenter => {
@@ -72,6 +67,21 @@ export default class TripPresenter {
     // Очищаем контейнер
     pointsContainer.innerHTML = '';
 
+    // Получаем отсортированные точки
+    let waypoints = this.tripModel.getWaypoints();
+    
+    // Сортируем в зависимости от выбранного типа
+    switch (this.currentSortType) {
+      case 'day':
+        waypoints.sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
+        break;
+      case 'price':
+        waypoints.sort((a, b) => b.basePrice - a.basePrice);
+        break;
+      default:
+        waypoints.sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
+    }
+
     if (waypoints.length === 0) {
       this.renderEmptyList(pointsContainer);
       return;
@@ -80,7 +90,7 @@ export default class TripPresenter {
     // Отрисовываем сортировку
     this.renderSort();
 
-    // Создаём новые презентеры для каждой точки
+    // Создаём презентеры для каждой точки
     waypoints.forEach((waypoint) => {
       this.renderPoint(waypoint, pointsContainer);
     });
@@ -114,13 +124,11 @@ export default class TripPresenter {
     waypoints[index] = updatedWaypoint;
   }
   
-  // Находим презентер для обновлённой точки и обновляем его
+  // Обновляем только конкретный презентер, без перерисовки всего списка
   const pointPresenter = this.pointPresenters[index];
   if (pointPresenter) {
     const destination = this.tripModel.getDestinationById(updatedWaypoint.destinationId);
     const offers = this.tripModel.getOffersForWaypoint(updatedWaypoint.id);
-    
-    // Обновляем презентер с новыми данными
     pointPresenter.update(updatedWaypoint, destination, offers);
   }
 }
