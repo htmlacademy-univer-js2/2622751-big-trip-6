@@ -11,7 +11,7 @@ export default class SortView extends AbstractView {
   get template() {
     return `
       <form class="trip-events__trip-sort trip-sort" action="#" method="get">
-        ${this._sortItems.map(item => `
+        ${this._sortItems.map((item) => `
           <div class="trip-sort__item trip-sort__item--${item.type}">
             <input 
               id="sort-${item.type}" 

@@ -1,8 +1,5 @@
-const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2);
-};
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
-// Типы точек маршрута
 export const WaypointType = {
   TAXI: 'taxi',
   BUS: 'bus',
@@ -15,7 +12,6 @@ export const WaypointType = {
   RESTAURANT: 'restaurant'
 };
 
-// Города
 const cities = ['Chamonix', 'Geneva', 'Paris', 'Amsterdam', 'Berlin', 'Rome', 'London'];
 
 const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -26,7 +22,6 @@ const getRandomDate = () => {
   return date;
 };
 
-// Описания из задания
 const descriptionParagraphs = [
   'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
   'Cras aliquet varius magna, non porta ligula feugiat eget.',
@@ -91,14 +86,14 @@ export const generateMockData = () => {
     const waypoint = generateWaypoint(i);
     waypoints.push(waypoint);
 
-    if (!destinations.some(d => d.id === waypoint.destinationId)) {
+    if (!destinations.some((d) => d.id === waypoint.destinationId)) {
       const cityName = cities[i % cities.length];
       destinations.push(generateDestination(waypoint.destinationId, cityName));
     }
 
     const offers = generateOffers(waypoint.id);
     offersByWaypoint[waypoint.id] = offers;
-    waypoint.optionsIds = offers.map(o => o.id);
+    waypoint.optionsIds = offers.map((o) => o.id);
   }
 
   return { waypoints, destinations, offersByWaypoint };
