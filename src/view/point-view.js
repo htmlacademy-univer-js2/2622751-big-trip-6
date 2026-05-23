@@ -1,17 +1,34 @@
 // src/view/point-view.js
 
 import AbstractView from '../framework/view/abstract-view.js';
+import dayjs from 'dayjs';
+import duration from 'dayjs/plugin/duration.js';
+
+dayjs.extend(duration);
 
 const getDuration = (dateFrom, dateTo) => {
-  const diff = new Date(dateTo) - new Date(dateFrom);
-  const hours = Math.floor(diff / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
+  const diff = dayjs(dateTo).diff(dayjs(dateFrom));
+  const dur = dayjs.duration(diff);
+  
+  const days = Math.floor(dur.asDays());
+  const hours = dur.hours();
+  const minutes = dur.minutes();
+  
+  if (days > 0) {
+    return `${days.toString().padStart(2, '0')}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
+  }
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
+  }
+  return `${minutes.toString().padStart(2, '0')}m`;
 };
 
 const getFormattedDate = (date) => {
-  const d = new Date(date);
-  return d.toLocaleString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+  return dayjs(date).format('MMM D').toUpperCase();
+};
+
+const getFormattedTime = (date) => {
+  return dayjs(date).format('HH:mm');
 };
 
 export default class PointView extends AbstractView {
@@ -30,12 +47,9 @@ export default class PointView extends AbstractView {
     const { type, dateFrom, dateTo, basePrice, isFavorite } = this._waypoint;
     const { name: destinationName } = this._destination;
     
-    const startDate = new Date(dateFrom);
-    const endDate = new Date(dateTo);
-    
     const formattedDate = getFormattedDate(dateFrom);
-    const startTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const endTime = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const startTime = getFormattedTime(dateFrom);
+    const endTime = getFormattedTime(dateTo);
     const duration = getDuration(dateFrom, dateTo);
 
     const offersHtml = this._offers.slice(0, 2).map(offer => `
@@ -89,15 +103,11 @@ export default class PointView extends AbstractView {
   }
 
   _handleEditClick(evt) {
-  console.log('_handleEditClick called in point-view');
-  evt.preventDefault();
-  if (this._onEditClick) {
-    console.log('Calling _onEditClick');
-    this._onEditClick();
-  } else {
-    console.log('_onEditClick is undefined');
+    evt.preventDefault();
+    if (this._onEditClick) {
+      this._onEditClick();
+    }
   }
-}
 
   _handleFavoriteClick(evt) {
     evt.preventDefault();
@@ -107,19 +117,17 @@ export default class PointView extends AbstractView {
   }
 
   setEditClickHandler() {
-  console.log('setEditClickHandler called');
-  const rollupBtn = this.element.querySelector('.event__rollup-btn');
-  console.log('rollupBtn found:', rollupBtn);
-  if (rollupBtn) {
-    rollupBtn.addEventListener('click', this._handleEditClick);
-    console.log('Event listener added');
+    const rollupBtn = this.element.querySelector('.event__rollup-btn');
+    if (rollupBtn) {
+      rollupBtn.addEventListener('click', this._handleEditClick);
+    }
   }
-}
 
   setFavoriteClickHandler(callback) {
     this._onFavoriteClick = callback;
     const favoriteBtn = this.element.querySelector('.event__favorite-btn');
     if (favoriteBtn) {
+      favoriteBtn.removeEventListener('click', this._handleFavoriteClick);
       favoriteBtn.addEventListener('click', this._handleFavoriteClick);
     }
   }
