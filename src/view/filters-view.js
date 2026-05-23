@@ -1,5 +1,3 @@
-// src/view/filters-view.js
-
 import AbstractView from '../framework/view/abstract-view.js';
 
 export default class FiltersView extends AbstractView {
