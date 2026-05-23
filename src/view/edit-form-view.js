@@ -1,4 +1,9 @@
+// src/view/edit-form-view.js
+
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
+import dayjs from 'dayjs';
 
 const WaypointType = {
   TAXI: 'taxi',
@@ -20,6 +25,8 @@ export default class EditFormView extends AbstractStatefulView {
     this._allOffers = allOffers || [];
     this._onFormSubmit = onFormSubmit;
     this._onCancelClick = onCancelClick;
+    this._datepickerFrom = null;
+    this._datepickerTo = null;
     
     this._setState({
       type: waypoint.type,
@@ -36,19 +43,14 @@ export default class EditFormView extends AbstractStatefulView {
     this._handleTypeChange = this._handleTypeChange.bind(this);
     this._handleOfferChange = this._handleOfferChange.bind(this);
     this._handlePriceChange = this._handlePriceChange.bind(this);
-    this._handleDateFromChange = this._handleDateFromChange.bind(this);
-    this._handleDateToChange = this._handleDateToChange.bind(this);
   }
 
   get template() {
     const { type, dateFrom, dateTo, basePrice, selectedOfferIds } = this._state;
     const { name: destinationName, description, pictures } = this._destination;
     
-    const startDate = new Date(dateFrom);
-    const endDate = new Date(dateTo);
-    
-    const startDateValue = startDate.toISOString().slice(0, 16);
-    const endDateValue = endDate.toISOString().slice(0, 16);
+    const formattedDateFrom = dayjs(dateFrom).format('DD/MM/YY HH:mm');
+    const formattedDateTo = dayjs(dateTo).format('DD/MM/YY HH:mm');
     
     const offersHtml = this._allOffers.map(offer => `
       <div class="event__offer-selector">
@@ -86,19 +88,45 @@ export default class EditFormView extends AbstractStatefulView {
               </select>
             </div>
             <div class="event__field-group">
-              <input class="event__input" type="text" name="event-destination" value="${destinationName}" list="destination-list-1">
+              <input 
+                class="event__input" 
+                type="text" 
+                name="event-destination" 
+                value="${destinationName}" 
+                list="destination-list-1"
+              >
               <datalist id="destination-list-1">
                 <option value="${destinationName}"></option>
               </datalist>
             </div>
             <div class="event__field-group">
-              <input class="event__input" type="text" name="event-price" value="${basePrice}" data-price-input>
+              <input 
+                class="event__input" 
+                type="text" 
+                name="event-price" 
+                value="${basePrice}"
+                data-price-input
+              >
             </div>
             <div class="event__field-group">
-              <input class="event__input" type="datetime-local" name="event-start-time" value="${startDateValue}" data-start-date>
+              <input 
+                class="event__input" 
+                type="text" 
+                name="event-start-time" 
+                value="${formattedDateFrom}"
+                data-start-date
+                readonly
+              >
             </div>
             <div class="event__field-group">
-              <input class="event__input" type="datetime-local" name="event-end-time" value="${endDateValue}" data-end-date>
+              <input 
+                class="event__input" 
+                type="text" 
+                name="event-end-time" 
+                value="${formattedDateTo}"
+                data-end-date
+                readonly
+              >
             </div>
             <button class="event__save-btn" type="submit">Save</button>
             <button class="event__reset-btn" type="reset">Cancel</button>
@@ -161,16 +189,46 @@ export default class EditFormView extends AbstractStatefulView {
     });
   }
 
-  _handleDateFromChange(evt) {
-    this.updateElement({
-      dateFrom: new Date(evt.target.value).toISOString()
-    });
+  _initDatepickers() {
+    const startDateInput = this.element.querySelector('[data-start-date]');
+    const endDateInput = this.element.querySelector('[data-end-date]');
+    
+    if (startDateInput && !this._datepickerFrom) {
+      this._datepickerFrom = flatpickr(startDateInput, {
+        enableTime: true,
+        dateFormat: 'd/m/y H:i',
+        defaultDate: this._state.dateFrom,
+        onChange: (selectedDates) => {
+          if (selectedDates[0]) {
+            this.updateElement({ dateFrom: selectedDates[0].toISOString() });
+          }
+        }
+      });
+    }
+    
+    if (endDateInput && !this._datepickerTo) {
+      this._datepickerTo = flatpickr(endDateInput, {
+        enableTime: true,
+        dateFormat: 'd/m/y H:i',
+        defaultDate: this._state.dateTo,
+        onChange: (selectedDates) => {
+          if (selectedDates[0]) {
+            this.updateElement({ dateTo: selectedDates[0].toISOString() });
+          }
+        }
+      });
+    }
   }
 
-  _handleDateToChange(evt) {
-    this.updateElement({
-      dateTo: new Date(evt.target.value).toISOString()
-    });
+  _destroyDatepickers() {
+    if (this._datepickerFrom) {
+      this._datepickerFrom.destroy();
+      this._datepickerFrom = null;
+    }
+    if (this._datepickerTo) {
+      this._datepickerTo.destroy();
+      this._datepickerTo = null;
+    }
   }
 
   _restoreHandlers() {
@@ -178,8 +236,6 @@ export default class EditFormView extends AbstractStatefulView {
     const cancelBtn = this.element.querySelector('.event__reset-btn');
     const typeSelect = this.element.querySelector('.event__type-list');
     const priceInput = this.element.querySelector('[data-price-input]');
-    const startDateInput = this.element.querySelector('[data-start-date]');
-    const endDateInput = this.element.querySelector('[data-end-date]');
     const offersContainer = this.element.querySelector('[data-offers-container]');
     
     if (form) {
@@ -194,17 +250,13 @@ export default class EditFormView extends AbstractStatefulView {
     if (priceInput) {
       priceInput.addEventListener('change', this._handlePriceChange);
     }
-    if (startDateInput) {
-      startDateInput.addEventListener('change', this._handleDateFromChange);
-    }
-    if (endDateInput) {
-      endDateInput.addEventListener('change', this._handleDateToChange);
-    }
     if (offersContainer) {
       offersContainer.querySelectorAll('.event__offer-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', this._handleOfferChange);
       });
     }
+    
+    this._initDatepickers();
   }
 
   setFormSubmitHandler() {
@@ -224,5 +276,10 @@ export default class EditFormView extends AbstractStatefulView {
   updateElement(update) {
     super.updateElement(update);
     this._restoreHandlers();
+  }
+
+  removeElement() {
+    this._destroyDatepickers();
+    super.removeElement();
   }
 }
