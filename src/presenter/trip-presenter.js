@@ -3,6 +3,7 @@
 import FiltersView from '../view/filters-view.js';
 import SortView from '../view/sort-view.js';
 import EmptyListView from '../view/empty-list-view.js';
+import PointView from '../view/point-view.js';
 import PointPresenter from './point-presenter.js';
 import { render, RenderPosition } from '../framework/render.js';
 
@@ -14,7 +15,7 @@ export default class TripPresenter {
     this.sortComponent = null;
     this.emptyListComponent = null;
     this.pointPresenters = [];
-    this.currentSortType = 'day'; // Сортировка по умолчанию
+    this.currentSortType = 'day';
   }
 
   init() {
@@ -39,7 +40,7 @@ export default class TripPresenter {
 
   renderSort() {
     this.sortComponent = new SortView(this.currentSortType, (sortType) => {
-      if (this.currentSortType === sortType) return; // Не перерисовываем, если сортировка не изменилась
+      if (this.currentSortType === sortType) return;
       this.currentSortType = sortType;
       this.tripModel.setSort(sortType);
       this.renderTripEvents();
@@ -56,41 +57,22 @@ export default class TripPresenter {
     const pointsContainer = document.querySelector('.trip-events');
     if (!pointsContainer) return;
 
-    // Уничтожаем старые презентеры
     this.pointPresenters.forEach(presenter => {
-      if (presenter.destroy) {
-        presenter.destroy();
-      }
+      if (presenter.destroy) presenter.destroy();
     });
     this.pointPresenters = [];
 
-    // Очищаем контейнер
     pointsContainer.innerHTML = '';
 
-    // Получаем отсортированные точки
-    let waypoints = this.tripModel.getWaypoints();
-    
-    // Сортируем в зависимости от выбранного типа
-    switch (this.currentSortType) {
-      case 'day':
-        waypoints.sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
-        break;
-      case 'price':
-        waypoints.sort((a, b) => b.basePrice - a.basePrice);
-        break;
-      default:
-        waypoints.sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
-    }
+    const waypoints = this.tripModel.getWaypoints();
 
     if (waypoints.length === 0) {
       this.renderEmptyList(pointsContainer);
       return;
     }
 
-    // Отрисовываем сортировку
     this.renderSort();
 
-    // Создаём презентеры для каждой точки
     waypoints.forEach((waypoint) => {
       this.renderPoint(waypoint, pointsContainer);
     });
@@ -104,11 +86,13 @@ export default class TripPresenter {
   renderPoint(waypoint, container) {
     const destination = this.tripModel.getDestinationById(waypoint.destinationId);
     const offers = this.tripModel.getOffersForWaypoint(waypoint.id);
+    const allOffers = this.tripModel.getAllOffers();
     
     const pointPresenter = new PointPresenter(
       container,
       this.handleWaypointChange.bind(this),
-      () => this.handleModeChange()
+      () => this.handleModeChange(),
+      allOffers
     );
     
     pointPresenter.init(waypoint, destination, offers);
@@ -116,25 +100,47 @@ export default class TripPresenter {
   }
 
   handleWaypointChange(updatedWaypoint) {
-  // Обновляем данные в модели
-  const waypoints = this.tripModel.getWaypoints();
-  const index = waypoints.findIndex(waypoint => waypoint.id === updatedWaypoint.id);
-  
-  if (index !== -1) {
-    waypoints[index] = updatedWaypoint;
+    const waypoints = this.tripModel.getWaypoints();
+    const index = waypoints.findIndex(waypoint => waypoint.id === updatedWaypoint.id);
+    
+    if (index !== -1) {
+      waypoints[index] = updatedWaypoint;
+    }
+    
+    const pointPresenter = this.pointPresenters[index];
+    if (pointPresenter) {
+      pointPresenter.waypoint = updatedWaypoint;
+      pointPresenter.destination = this.tripModel.getDestinationById(updatedWaypoint.destinationId);
+      pointPresenter.offers = this.tripModel.getOffersForWaypoint(updatedWaypoint.id);
+      
+      if (!pointPresenter.isEditMode) {
+        const newPointComponent = new PointView(
+          updatedWaypoint,
+          pointPresenter.destination,
+          pointPresenter.offers,
+          () => pointPresenter.openEditForm()
+        );
+        if (pointPresenter.pointComponent && pointPresenter.pointComponent.element) {
+          pointPresenter.pointComponent.element.replaceWith(newPointComponent.element);
+        }
+        pointPresenter.pointComponent = newPointComponent;
+        pointPresenter.pointComponent.setEditClickHandler();
+        pointPresenter.setFavoriteClickHandler();
+      } else {
+        pointPresenter.editFormComponent.updateElement({
+          type: updatedWaypoint.type,
+          destinationId: updatedWaypoint.destinationId,
+          dateFrom: updatedWaypoint.dateFrom,
+          dateTo: updatedWaypoint.dateTo,
+          basePrice: updatedWaypoint.basePrice,
+          selectedOfferIds: updatedWaypoint.optionsIds,
+          isFavorite: updatedWaypoint.isFavorite
+        });
+      }
+    }
   }
-  
-  // Обновляем только конкретный презентер, без перерисовки всего списка
-  const pointPresenter = this.pointPresenters[index];
-  if (pointPresenter) {
-    const destination = this.tripModel.getDestinationById(updatedWaypoint.destinationId);
-    const offers = this.tripModel.getOffersForWaypoint(updatedWaypoint.id);
-    pointPresenter.update(updatedWaypoint, destination, offers);
-  }
-}
 
   handleModeChange() {
-    // Закрываем все открытые формы
     this.pointPresenters.forEach(presenter => {
       if (presenter && typeof presenter.resetView === 'function') {
         presenter.resetView();

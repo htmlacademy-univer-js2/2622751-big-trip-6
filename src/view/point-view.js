@@ -89,9 +89,13 @@ export default class PointView extends AbstractView {
   }
 
   _handleEditClick(evt) {
+  console.log('_handleEditClick called in point-view');
   evt.preventDefault();
   if (this._onEditClick) {
+    console.log('Calling _onEditClick');
     this._onEditClick();
+  } else {
+    console.log('_onEditClick is undefined');
   }
 }
 
@@ -103,13 +107,12 @@ export default class PointView extends AbstractView {
   }
 
   setEditClickHandler() {
+  console.log('setEditClickHandler called');
   const rollupBtn = this.element.querySelector('.event__rollup-btn');
-  console.log('setEditClickHandler called, button found:', rollupBtn);
+  console.log('rollupBtn found:', rollupBtn);
   if (rollupBtn) {
     rollupBtn.addEventListener('click', this._handleEditClick);
-    console.log('Event listener added to rollup button');
-  } else {
-    console.error('Rollup button not found!');
+    console.log('Event listener added');
   }
 }
 

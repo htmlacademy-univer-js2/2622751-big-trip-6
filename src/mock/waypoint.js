@@ -98,3 +98,16 @@ export const generateMockData = () => {
 
   return { waypoints, destinations, offersByWaypoint };
 };
+
+export const generateAllOffers = () => {
+  return [
+    { id: 'offer-1', title: 'Add luggage', price: 50, type: 'taxi' },
+    { id: 'offer-2', title: 'Comfort class', price: 100, type: 'flight' },
+    { id: 'offer-3', title: 'Meal', price: 30, type: 'train' },
+    { id: 'offer-4', title: 'Priority boarding', price: 20, type: 'flight' },
+    { id: 'offer-5', title: 'Wi-Fi', price: 15, type: 'default' },
+    { id: 'offer-6', title: 'Transfer', price: 80, type: 'default' }
+  ];
+  console.log('generateAllOffers returning:', offers);
+  return offers;
+};

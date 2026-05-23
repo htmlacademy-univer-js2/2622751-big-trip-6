@@ -1,22 +1,47 @@
-// src/view/edit-form-view.js
+import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 
-import AbstractView from '../framework/view/abstract-view.js';
+const WaypointType = {
+  TAXI: 'taxi',
+  BUS: 'bus',
+  TRAIN: 'train',
+  SHIP: 'ship',
+  DRIVE: 'drive',
+  FLIGHT: 'flight',
+  CHECK_IN: 'check-in',
+  SIGHTSEEING: 'sightseeing',
+  RESTAURANT: 'restaurant'
+};
 
-export default class EditFormView extends AbstractView {
-  constructor(waypoint, destination, offers, onFormSubmit, onCancelClick) {
+export default class EditFormView extends AbstractStatefulView {
+  constructor(waypoint, destination, allOffers, onFormSubmit, onCancelClick) {
     super();
     this._waypoint = waypoint;
     this._destination = destination;
-    this._offers = offers;
+    this._allOffers = allOffers || [];
     this._onFormSubmit = onFormSubmit;
     this._onCancelClick = onCancelClick;
     
+    this._setState({
+      type: waypoint.type,
+      destinationId: waypoint.destinationId,
+      dateFrom: waypoint.dateFrom,
+      dateTo: waypoint.dateTo,
+      basePrice: waypoint.basePrice,
+      selectedOfferIds: waypoint.optionsIds || [],
+      isFavorite: waypoint.isFavorite
+    });
+    
     this._handleFormSubmit = this._handleFormSubmit.bind(this);
     this._handleCancelClick = this._handleCancelClick.bind(this);
+    this._handleTypeChange = this._handleTypeChange.bind(this);
+    this._handleOfferChange = this._handleOfferChange.bind(this);
+    this._handlePriceChange = this._handlePriceChange.bind(this);
+    this._handleDateFromChange = this._handleDateFromChange.bind(this);
+    this._handleDateToChange = this._handleDateToChange.bind(this);
   }
 
   get template() {
-    const { type, dateFrom, dateTo, basePrice } = this._waypoint;
+    const { type, dateFrom, dateTo, basePrice, selectedOfferIds } = this._state;
     const { name: destinationName, description, pictures } = this._destination;
     
     const startDate = new Date(dateFrom);
@@ -24,10 +49,17 @@ export default class EditFormView extends AbstractView {
     
     const startDateValue = startDate.toISOString().slice(0, 16);
     const endDateValue = endDate.toISOString().slice(0, 16);
-
-    const offersHtml = this._offers.map(offer => `
+    
+    const offersHtml = this._allOffers.map(offer => `
       <div class="event__offer-selector">
-        <input class="event__offer-checkbox visually-hidden" id="offer-${offer.id}" type="checkbox" name="offer" value="${offer.id}" checked>
+        <input 
+          class="event__offer-checkbox visually-hidden" 
+          id="offer-${offer.id}" 
+          type="checkbox" 
+          name="offer" 
+          value="${offer.id}"
+          ${selectedOfferIds.includes(offer.id) ? 'checked' : ''}
+        >
         <label class="event__offer-label" for="offer-${offer.id}">
           <span class="event__offer-title">${offer.title}</span>
           +€${offer.price}
@@ -47,8 +79,10 @@ export default class EditFormView extends AbstractView {
               <label class="event__type" for="event-type-toggle-1">
                 <img class="event__type-icon" width="17" height="17" src="img/icons/${type}.png" alt="Event type icon">
               </label>
-              <select class="event__type-list" id="event-type-toggle-1">
-                <option value="${type}" selected>${type}</option>
+              <select class="event__type-list" id="event-type-toggle-1" data-type-select>
+                ${Object.values(WaypointType).map(typeOption => `
+                  <option value="${typeOption}" ${type === typeOption ? 'selected' : ''}>${typeOption}</option>
+                `).join('')}
               </select>
             </div>
             <div class="event__field-group">
@@ -58,13 +92,13 @@ export default class EditFormView extends AbstractView {
               </datalist>
             </div>
             <div class="event__field-group">
-              <input class="event__input" type="text" name="event-price" value="${basePrice}">
+              <input class="event__input" type="text" name="event-price" value="${basePrice}" data-price-input>
             </div>
             <div class="event__field-group">
-              <input class="event__input" type="datetime-local" name="event-start-time" value="${startDateValue}">
+              <input class="event__input" type="datetime-local" name="event-start-time" value="${startDateValue}" data-start-date>
             </div>
             <div class="event__field-group">
-              <input class="event__input" type="datetime-local" name="event-end-time" value="${endDateValue}">
+              <input class="event__input" type="datetime-local" name="event-end-time" value="${endDateValue}" data-end-date>
             </div>
             <button class="event__save-btn" type="submit">Save</button>
             <button class="event__reset-btn" type="reset">Cancel</button>
@@ -72,8 +106,8 @@ export default class EditFormView extends AbstractView {
           <section class="event__details">
             <div class="event__section event__section--offers">
               <h3 class="event__section-title event__section-title--offers">Offers</h3>
-              <div class="event__available-offers">
-                ${offersHtml}
+              <div class="event__available-offers" data-offers-container>
+                ${offersHtml || '<p>No offers available</p>'}
               </div>
             </div>
             <div class="event__section event__section--destination">
@@ -93,7 +127,7 @@ export default class EditFormView extends AbstractView {
 
   _handleFormSubmit(evt) {
     evt.preventDefault();
-    this._onFormSubmit();
+    this._onFormSubmit(this._state);
   }
 
   _handleCancelClick(evt) {
@@ -101,8 +135,83 @@ export default class EditFormView extends AbstractView {
     this._onCancelClick();
   }
 
+  _handleTypeChange(evt) {
+    this.updateElement({
+      type: evt.target.value,
+      selectedOfferIds: []
+    });
+  }
+
+  _handleOfferChange(evt) {
+    const offerId = evt.target.value;
+    let selectedOfferIds = [...this._state.selectedOfferIds];
+    
+    if (evt.target.checked) {
+      selectedOfferIds.push(offerId);
+    } else {
+      selectedOfferIds = selectedOfferIds.filter(id => id !== offerId);
+    }
+    
+    this.updateElement({ selectedOfferIds });
+  }
+
+  _handlePriceChange(evt) {
+    this.updateElement({
+      basePrice: parseInt(evt.target.value, 10) || 0
+    });
+  }
+
+  _handleDateFromChange(evt) {
+    this.updateElement({
+      dateFrom: new Date(evt.target.value).toISOString()
+    });
+  }
+
+  _handleDateToChange(evt) {
+    this.updateElement({
+      dateTo: new Date(evt.target.value).toISOString()
+    });
+  }
+
+  _restoreHandlers() {
+    const form = this.element.querySelector('form');
+    const cancelBtn = this.element.querySelector('.event__reset-btn');
+    const typeSelect = this.element.querySelector('.event__type-list');
+    const priceInput = this.element.querySelector('[data-price-input]');
+    const startDateInput = this.element.querySelector('[data-start-date]');
+    const endDateInput = this.element.querySelector('[data-end-date]');
+    const offersContainer = this.element.querySelector('[data-offers-container]');
+    
+    if (form) {
+      form.addEventListener('submit', this._handleFormSubmit);
+    }
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', this._handleCancelClick);
+    }
+    if (typeSelect) {
+      typeSelect.addEventListener('change', this._handleTypeChange);
+    }
+    if (priceInput) {
+      priceInput.addEventListener('change', this._handlePriceChange);
+    }
+    if (startDateInput) {
+      startDateInput.addEventListener('change', this._handleDateFromChange);
+    }
+    if (endDateInput) {
+      endDateInput.addEventListener('change', this._handleDateToChange);
+    }
+    if (offersContainer) {
+      offersContainer.querySelectorAll('.event__offer-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', this._handleOfferChange);
+      });
+    }
+  }
+
   setFormSubmitHandler() {
-    this.element.addEventListener('submit', this._handleFormSubmit);
+    const form = this.element.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', this._handleFormSubmit);
+    }
   }
 
   setCancelClickHandler() {
@@ -110,5 +219,10 @@ export default class EditFormView extends AbstractView {
     if (cancelBtn) {
       cancelBtn.addEventListener('click', this._handleCancelClick);
     }
+  }
+
+  updateElement(update) {
+    super.updateElement(update);
+    this._restoreHandlers();
   }
 }

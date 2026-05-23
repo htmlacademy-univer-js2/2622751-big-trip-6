@@ -1,6 +1,6 @@
 // src/model/trip-model.js
 
-import { generateMockData } from '../mock/waypoint.js';
+import { generateMockData, generateAllOffers } from '../mock/waypoint.js';
 
 export default class TripModel {
   constructor() {
@@ -8,6 +8,7 @@ export default class TripModel {
     this._waypoints = waypoints;
     this._destinations = destinations;
     this._offersByWaypoint = offersByWaypoint;
+    this._allOffers = generateAllOffers();
     this._activeFilter = 'everything';
     this._activeSort = 'day';
   }
@@ -15,21 +16,29 @@ export default class TripModel {
   getWaypoints() {
     let filteredWaypoints = [...this._waypoints];
     
-    // Применяем фильтр
     const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
     switch (this._activeFilter) {
       case 'future':
-        filteredWaypoints = filteredWaypoints.filter(waypoint => new Date(waypoint.dateFrom) > now);
+        filteredWaypoints = filteredWaypoints.filter(waypoint => {
+          const waypointDate = new Date(waypoint.dateFrom);
+          waypointDate.setHours(0, 0, 0, 0);
+          return waypointDate > now;
+        });
         break;
       case 'past':
-        filteredWaypoints = filteredWaypoints.filter(waypoint => new Date(waypoint.dateTo) < now);
+        filteredWaypoints = filteredWaypoints.filter(waypoint => {
+          const waypointDate = new Date(waypoint.dateTo);
+          waypointDate.setHours(0, 0, 0, 0);
+          return waypointDate < now;
+        });
         break;
       case 'everything':
       default:
         break;
     }
     
-    // Применяем сортировку
     switch (this._activeSort) {
       case 'day':
         filteredWaypoints.sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
@@ -37,6 +46,8 @@ export default class TripModel {
       case 'price':
         filteredWaypoints.sort((a, b) => b.basePrice - a.basePrice);
         break;
+      default:
+        filteredWaypoints.sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
     }
     
     return filteredWaypoints;
@@ -54,10 +65,25 @@ export default class TripModel {
     return this._destinations.find(dest => dest.id === id);
   }
 
+  getAllOffers() {
+    return this._allOffers;
+  }
+
   getFilters() {
     const now = new Date();
-    const hasFuture = this._waypoints.some(waypoint => new Date(waypoint.dateFrom) > now);
-    const hasPast = this._waypoints.some(waypoint => new Date(waypoint.dateTo) < now);
+    now.setHours(0, 0, 0, 0);
+    
+    const hasFuture = this._waypoints.some(waypoint => {
+      const waypointDate = new Date(waypoint.dateFrom);
+      waypointDate.setHours(0, 0, 0, 0);
+      return waypointDate > now;
+    });
+    
+    const hasPast = this._waypoints.some(waypoint => {
+      const waypointDate = new Date(waypoint.dateTo);
+      waypointDate.setHours(0, 0, 0, 0);
+      return waypointDate < now;
+    });
     
     return [
       {
@@ -122,5 +148,13 @@ export default class TripModel {
 
   setSort(sortType) {
     this._activeSort = sortType;
+  }
+
+  getActiveFilter() {
+    return this._activeFilter;
+  }
+
+  getActiveSort() {
+    return this._activeSort;
   }
 }

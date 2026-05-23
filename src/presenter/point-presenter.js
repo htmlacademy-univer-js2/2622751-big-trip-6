@@ -2,10 +2,12 @@ import PointView from '../view/point-view.js';
 import EditFormView from '../view/edit-form-view.js';
 
 export default class PointPresenter {
-  constructor(container, onDataChange, onModeChange) {
+  constructor(container, onDataChange, onModeChange, allOffers) {
     this.container = container;
     this.onDataChange = onDataChange;
     this.onModeChange = onModeChange;
+    this.allOffers = allOffers || [];
+    
     this.pointComponent = null;
     this.editFormComponent = null;
     this.isEditMode = false;
@@ -13,6 +15,8 @@ export default class PointPresenter {
     this.waypoint = null;
     this.destination = null;
     this.offers = null;
+    this.currentParent = null;
+    this.currentPointElement = null;
   }
 
   init(waypoint, destination, offers) {
@@ -21,13 +25,17 @@ export default class PointPresenter {
     this.offers = offers;
     
     this.pointComponent = new PointView(
-      waypoint, destination, offers,
+      waypoint, 
+      destination, 
+      offers,
       () => this.openEditForm()
     );
     
     this.editFormComponent = new EditFormView(
-      waypoint, destination, offers,
-      () => this.closeEditForm(),
+      waypoint, 
+      destination, 
+      this.allOffers,
+      (state) => this.handleFormSubmit(state),
       () => this.closeEditForm()
     );
     
@@ -41,31 +49,26 @@ export default class PointPresenter {
     this.destination = destination;
     this.offers = offers;
     
-    // Сохраняем позицию текущего элемента
-    const oldElement = this.pointComponent.element;
-    const parent = oldElement.parentElement;
-    const nextSibling = oldElement.nextSibling;
-    
-    // Создаём новый компонент точки
     const newPointComponent = new PointView(
-      waypoint, destination, offers,
+      waypoint, 
+      destination, 
+      offers,
       () => this.openEditForm()
     );
     
-    // Заменяем элемент
-    if (parent) {
-      parent.insertBefore(newPointComponent.element, nextSibling);
-      oldElement.remove();
+    if (this.pointComponent && this.pointComponent.element && this.pointComponent.element.isConnected) {
+      this.pointComponent.element.replaceWith(newPointComponent.element);
     }
     
     this.pointComponent = newPointComponent;
     this.pointComponent.setEditClickHandler();
     this.setFavoriteClickHandler();
     
-    // Обновляем форму редактирования
     this.editFormComponent = new EditFormView(
-      waypoint, destination, offers,
-      () => this.closeEditForm(),
+      waypoint, 
+      destination, 
+      this.allOffers,
+      (state) => this.handleFormSubmit(state),
       () => this.closeEditForm()
     );
     
@@ -87,6 +90,9 @@ export default class PointPresenter {
     const parent = pointElement.parentElement;
     if (!parent) return;
     
+    this.currentParent = parent;
+    this.currentPointElement = pointElement;
+    
     parent.replaceChild(this.editFormComponent.element, pointElement);
     
     this.editFormComponent.setFormSubmitHandler();
@@ -106,19 +112,33 @@ export default class PointPresenter {
   closeEditForm() {
     if (!this.isEditMode) return;
     
+    // Способ 1: используем сохранённые ссылки
+    if (this.currentParent && this.currentPointElement) {
+      try {
+        this.currentParent.replaceChild(this.currentPointElement, this.editFormComponent.element);
+      } catch (err) {
+        // Игнорируем ошибку, пробуем другие способы
+      }
+    }
+    
+    // Способ 2: ищем родителя через DOM
     const formElement = this.editFormComponent.element;
-    if (!formElement || !formElement.isConnected) {
-      this.isEditMode = false;
-      return;
+    if (formElement && formElement.isConnected) {
+      const parent = formElement.parentElement;
+      if (parent) {
+        try {
+          parent.replaceChild(this.pointComponent.element, formElement);
+        } catch (err) {
+          // Игнорируем ошибку
+        }
+      }
     }
     
-    const parent = formElement.parentElement;
-    if (!parent) {
-      this.isEditMode = false;
-      return;
+    // Способ 3: удаляем и добавляем заново
+    if (this.editFormComponent.element && this.editFormComponent.element.isConnected) {
+      this.editFormComponent.element.remove();
+      this.container.appendChild(this.pointComponent.element);
     }
-    
-    parent.replaceChild(this.pointComponent.element, formElement);
     
     if (this.escKeyHandler) {
       document.removeEventListener('keydown', this.escKeyHandler);
@@ -126,6 +146,28 @@ export default class PointPresenter {
     }
     
     this.isEditMode = false;
+    this.currentParent = null;
+    this.currentPointElement = null;
+  }
+
+  handleFormSubmit(state) {
+    const updatedWaypoint = {
+      ...this.waypoint,
+      type: state.type,
+      dateFrom: state.dateFrom,
+      dateTo: state.dateTo,
+      basePrice: state.basePrice,
+      optionsIds: state.selectedOfferIds,
+      isFavorite: state.isFavorite
+    };
+    
+    this.waypoint = updatedWaypoint;
+    
+    if (this.onDataChange) {
+      this.onDataChange(updatedWaypoint);
+    }
+    
+    this.closeEditForm();
   }
 
   setFavoriteClickHandler() {
@@ -160,5 +202,7 @@ export default class PointPresenter {
     this.pointComponent = null;
     this.editFormComponent = null;
     this.isEditMode = false;
+    this.currentParent = null;
+    this.currentPointElement = null;
   }
 }
