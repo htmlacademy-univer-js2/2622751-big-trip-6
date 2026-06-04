@@ -1,10 +1,14 @@
-// src/view/point-view.js
-
 import AbstractView from '../framework/view/abstract-view.js';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration.js';
 
 dayjs.extend(duration);
+
+const DEFAULT_DESTINATION = {
+  name: 'Unknown destination',
+  description: 'No description available',
+  pictures: []
+};
 
 const getDuration = (dateFrom, dateTo) => {
   const diff = dayjs(dateTo).diff(dayjs(dateFrom));
@@ -35,8 +39,20 @@ export default class PointView extends AbstractView {
   constructor(waypoint, destination, offers, onEditClick) {
     super();
     this._waypoint = waypoint;
-    this._destination = destination;
-    this._offers = offers;
+    
+    // Защита от undefined destination
+    if (!destination || typeof destination !== 'object') {
+      console.warn('PointView: destination is undefined, using default', { waypoint, destination });
+      this._destination = { ...DEFAULT_DESTINATION };
+    } else {
+      this._destination = {
+        name: destination.name || DEFAULT_DESTINATION.name,
+        description: destination.description || DEFAULT_DESTINATION.description,
+        pictures: Array.isArray(destination.pictures) ? destination.pictures : DEFAULT_DESTINATION.pictures
+      };
+    }
+    
+    this._offers = offers || [];
     this._onEditClick = onEditClick;
     
     this._handleEditClick = this._handleEditClick.bind(this);
@@ -44,8 +60,14 @@ export default class PointView extends AbstractView {
   }
 
   get template() {
+    // Дополнительная проверка в шаблоне
+    let destination = this._destination;
+    if (!destination || typeof destination !== 'object') {
+      destination = { ...DEFAULT_DESTINATION };
+    }
+    
     const { type, dateFrom, dateTo, basePrice, isFavorite } = this._waypoint;
-    const { name: destinationName } = this._destination;
+    const destinationName = destination.name || DEFAULT_DESTINATION.name;
     
     const formattedDate = getFormattedDate(dateFrom);
     const startTime = getFormattedTime(dateFrom);
@@ -70,7 +92,7 @@ export default class PointView extends AbstractView {
           </div>
           <div class="event__details">
             <div class="event__topic">
-              <h3 class="event__title">${type} to ${destinationName}</h3>
+              <h3 class="event__title">${type} to ${this._escapeHtml(destinationName)}</h3>
             </div>
             <div class="event__schedule">
               <p class="event__time">
@@ -100,6 +122,16 @@ export default class PointView extends AbstractView {
         </div>
       </li>
     `;
+  }
+
+  _escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   _handleEditClick(evt) {

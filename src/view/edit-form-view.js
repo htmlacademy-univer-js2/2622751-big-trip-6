@@ -1,5 +1,3 @@
-// src/view/edit-form-view.js
-
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
@@ -18,13 +16,14 @@ const WaypointType = {
 };
 
 export default class EditFormView extends AbstractStatefulView {
-  constructor(waypoint, destination, allOffers, onFormSubmit, onCancelClick) {
+  constructor(waypoint, destination, allOffers, onFormSubmit, onCancelClick, onDeleteClick) {
     super();
     this._waypoint = waypoint;
     this._destination = destination;
     this._allOffers = allOffers || [];
     this._onFormSubmit = onFormSubmit;
     this._onCancelClick = onCancelClick;
+    this._onDeleteClick = onDeleteClick;
     this._datepickerFrom = null;
     this._datepickerTo = null;
     
@@ -34,23 +33,30 @@ export default class EditFormView extends AbstractStatefulView {
       dateFrom: waypoint.dateFrom,
       dateTo: waypoint.dateTo,
       basePrice: waypoint.basePrice,
-      selectedOfferIds: waypoint.optionsIds || [],
+      selectedOfferIds: [...(waypoint.optionsIds || [])],
       isFavorite: waypoint.isFavorite
     });
     
     this._handleFormSubmit = this._handleFormSubmit.bind(this);
     this._handleCancelClick = this._handleCancelClick.bind(this);
+    this._handleDeleteClick = this._handleDeleteClick.bind(this);
     this._handleTypeChange = this._handleTypeChange.bind(this);
     this._handleOfferChange = this._handleOfferChange.bind(this);
     this._handlePriceChange = this._handlePriceChange.bind(this);
+    this._handleDestinationChange = this._handleDestinationChange.bind(this);
+    this._handleDateFromChange = this._handleDateFromChange.bind(this);
+    this._handleDateToChange = this._handleDateToChange.bind(this);
   }
 
   get template() {
     const { type, dateFrom, dateTo, basePrice, selectedOfferIds } = this._state;
     const { name: destinationName, description, pictures } = this._destination;
     
-    const formattedDateFrom = dayjs(dateFrom).format('DD/MM/YY HH:mm');
-    const formattedDateTo = dayjs(dateTo).format('DD/MM/YY HH:mm');
+    const startDate = dateFrom ? dayjs(dateFrom).format('YYYY-MM-DDTHH:mm') : '';
+    const endDate = dateTo ? dayjs(dateTo).format('YYYY-MM-DDTHH:mm') : '';
+    
+    const isDateValid = dateFrom && dateTo && new Date(dateFrom) <= new Date(dateTo);
+    const isPriceValid = basePrice >= 1;
     
     const offersHtml = this._allOffers.map(offer => `
       <div class="event__offer-selector">
@@ -69,9 +75,11 @@ export default class EditFormView extends AbstractStatefulView {
       </div>
     `).join('');
 
-    const photosHtml = pictures.map(picture => `
-      <img class="event__photo" src="${picture.src}" alt="${picture.description}">
-    `).join('');
+    const photosHtml = pictures && pictures.length > 0 
+      ? pictures.map(picture => `
+          <img class="event__photo" src="${picture.src}" alt="${picture.description}">
+        `).join('')
+      : '<p>No photos available</p>';
 
     return `
       <li class="trip-events__item">
@@ -94,6 +102,8 @@ export default class EditFormView extends AbstractStatefulView {
                 name="event-destination" 
                 value="${destinationName}" 
                 list="destination-list-1"
+                data-destination-input
+                readonly
               >
               <datalist id="destination-list-1">
                 <option value="${destinationName}"></option>
@@ -101,35 +111,36 @@ export default class EditFormView extends AbstractStatefulView {
             </div>
             <div class="event__field-group">
               <input 
-                class="event__input" 
-                type="text" 
+                class="event__input ${!isPriceValid ? 'event__input--error' : ''}" 
+                type="number" 
                 name="event-price" 
                 value="${basePrice}"
                 data-price-input
+                min="1"
+                step="1"
               >
             </div>
             <div class="event__field-group">
               <input 
-                class="event__input" 
-                type="text" 
+                class="event__input ${!isDateValid ? 'event__input--error' : ''}" 
+                type="datetime-local" 
                 name="event-start-time" 
-                value="${formattedDateFrom}"
+                value="${startDate}"
                 data-start-date
-                readonly
               >
             </div>
             <div class="event__field-group">
               <input 
-                class="event__input" 
-                type="text" 
+                class="event__input ${!isDateValid ? 'event__input--error' : ''}" 
+                type="datetime-local" 
                 name="event-end-time" 
-                value="${formattedDateTo}"
+                value="${endDate}"
                 data-end-date
-                readonly
               >
             </div>
             <button class="event__save-btn" type="submit">Save</button>
             <button class="event__reset-btn" type="reset">Cancel</button>
+            <button class="event__delete-btn" type="button">Delete</button>
           </header>
           <section class="event__details">
             <div class="event__section event__section--offers">
@@ -153,14 +164,40 @@ export default class EditFormView extends AbstractStatefulView {
     `;
   }
 
+  _getFormData() {
+    const typeSelect = this.element.querySelector('.event__type-list');
+    const priceInput = this.element.querySelector('[data-price-input]');
+    const startDateInput = this.element.querySelector('[data-start-date]');
+    const endDateInput = this.element.querySelector('[data-end-date]');
+    const offerCheckboxes = this.element.querySelectorAll('.event__offer-checkbox:checked');
+    
+    return {
+      type: typeSelect ? typeSelect.value : this._state.type,
+      destinationId: this._state.destinationId,
+      dateFrom: startDateInput && startDateInput.value ? new Date(startDateInput.value).toISOString() : this._state.dateFrom,
+      dateTo: endDateInput && endDateInput.value ? new Date(endDateInput.value).toISOString() : this._state.dateTo,
+      basePrice: priceInput ? (parseInt(priceInput.value, 10) || 1) : this._state.basePrice,
+      selectedOfferIds: Array.from(offerCheckboxes).map(cb => cb.value),
+      isFavorite: this._state.isFavorite
+    };
+  }
+
   _handleFormSubmit(evt) {
     evt.preventDefault();
-    this._onFormSubmit(this._state);
+    const formData = this._getFormData();
+    this._onFormSubmit(formData);
   }
 
   _handleCancelClick(evt) {
     evt.preventDefault();
     this._onCancelClick();
+  }
+
+  _handleDeleteClick(evt) {
+    evt.preventDefault();
+    if (this._onDeleteClick) {
+      this._onDeleteClick();
+    }
   }
 
   _handleTypeChange(evt) {
@@ -170,12 +207,20 @@ export default class EditFormView extends AbstractStatefulView {
     });
   }
 
+  _handleDestinationChange(evt) {
+    this.updateElement({
+      destinationId: evt.target.value
+    });
+  }
+
   _handleOfferChange(evt) {
     const offerId = evt.target.value;
     let selectedOfferIds = [...this._state.selectedOfferIds];
     
     if (evt.target.checked) {
-      selectedOfferIds.push(offerId);
+      if (!selectedOfferIds.includes(offerId)) {
+        selectedOfferIds.push(offerId);
+      }
     } else {
       selectedOfferIds = selectedOfferIds.filter(id => id !== offerId);
     }
@@ -184,8 +229,24 @@ export default class EditFormView extends AbstractStatefulView {
   }
 
   _handlePriceChange(evt) {
+    let value = parseInt(evt.target.value, 10);
+    if (isNaN(value) || value < 1) {
+      value = 1;
+    }
     this.updateElement({
-      basePrice: parseInt(evt.target.value, 10) || 0
+      basePrice: value
+    });
+  }
+
+  _handleDateFromChange(evt) {
+    this.updateElement({
+      dateFrom: new Date(evt.target.value).toISOString()
+    });
+  }
+
+  _handleDateToChange(evt) {
+    this.updateElement({
+      dateTo: new Date(evt.target.value).toISOString()
     });
   }
 
@@ -234,24 +295,50 @@ export default class EditFormView extends AbstractStatefulView {
   _restoreHandlers() {
     const form = this.element.querySelector('form');
     const cancelBtn = this.element.querySelector('.event__reset-btn');
+    const deleteBtn = this.element.querySelector('.event__delete-btn');
     const typeSelect = this.element.querySelector('.event__type-list');
+    const destinationInput = this.element.querySelector('[data-destination-input]');
     const priceInput = this.element.querySelector('[data-price-input]');
+    const startDateInput = this.element.querySelector('[data-start-date]');
+    const endDateInput = this.element.querySelector('[data-end-date]');
     const offersContainer = this.element.querySelector('[data-offers-container]');
     
     if (form) {
+      form.removeEventListener('submit', this._handleFormSubmit);
       form.addEventListener('submit', this._handleFormSubmit);
     }
     if (cancelBtn) {
+      cancelBtn.removeEventListener('click', this._handleCancelClick);
       cancelBtn.addEventListener('click', this._handleCancelClick);
     }
+    if (deleteBtn) {
+      deleteBtn.removeEventListener('click', this._handleDeleteClick);
+      deleteBtn.addEventListener('click', this._handleDeleteClick);
+    }
     if (typeSelect) {
+      typeSelect.removeEventListener('change', this._handleTypeChange);
       typeSelect.addEventListener('change', this._handleTypeChange);
     }
+    if (destinationInput) {
+      destinationInput.removeEventListener('change', this._handleDestinationChange);
+      destinationInput.addEventListener('change', this._handleDestinationChange);
+    }
     if (priceInput) {
+      priceInput.removeEventListener('change', this._handlePriceChange);
       priceInput.addEventListener('change', this._handlePriceChange);
     }
+    if (startDateInput) {
+      startDateInput.removeEventListener('change', this._handleDateFromChange);
+      startDateInput.addEventListener('change', this._handleDateFromChange);
+    }
+    if (endDateInput) {
+      endDateInput.removeEventListener('change', this._handleDateToChange);
+      endDateInput.addEventListener('change', this._handleDateToChange);
+    }
+    
     if (offersContainer) {
       offersContainer.querySelectorAll('.event__offer-checkbox').forEach(checkbox => {
+        checkbox.removeEventListener('change', this._handleOfferChange);
         checkbox.addEventListener('change', this._handleOfferChange);
       });
     }
@@ -262,6 +349,7 @@ export default class EditFormView extends AbstractStatefulView {
   setFormSubmitHandler() {
     const form = this.element.querySelector('form');
     if (form) {
+      form.removeEventListener('submit', this._handleFormSubmit);
       form.addEventListener('submit', this._handleFormSubmit);
     }
   }
@@ -269,9 +357,18 @@ export default class EditFormView extends AbstractStatefulView {
   setCancelClickHandler() {
     const cancelBtn = this.element.querySelector('.event__reset-btn');
     if (cancelBtn) {
+      cancelBtn.removeEventListener('click', this._handleCancelClick);
       cancelBtn.addEventListener('click', this._handleCancelClick);
     }
   }
+
+  setDeleteClickHandler() {
+  const deleteBtn = this.element.querySelector('.event__delete-btn');
+  if (deleteBtn) {
+    deleteBtn.removeEventListener('click', this._handleDeleteClick);
+    deleteBtn.addEventListener('click', this._handleDeleteClick);
+  }
+}
 
   updateElement(update) {
     super.updateElement(update);
