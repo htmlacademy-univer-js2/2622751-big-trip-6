@@ -1,5 +1,3 @@
-// src/model/trip-model.js
-
 import { generateMockData, generateAllOffers } from '../mock/waypoint.js';
 
 export default class TripModel {
@@ -11,6 +9,15 @@ export default class TripModel {
     this._allOffers = generateAllOffers();
     this._activeFilter = 'everything';
     this._activeSort = 'day';
+    this._observers = [];
+  }
+
+  addObserver(observer) {
+    this._observers.push(observer);
+  }
+
+  _notifyObservers() {
+    this._observers.forEach(observer => observer());
   }
 
   getWaypoints() {
@@ -24,7 +31,7 @@ export default class TripModel {
         filteredWaypoints = filteredWaypoints.filter(waypoint => {
           const waypointDate = new Date(waypoint.dateFrom);
           waypointDate.setHours(0, 0, 0, 0);
-          return waypointDate > now;
+          return waypointDate >= now;
         });
         break;
       case 'past':
@@ -53,6 +60,36 @@ export default class TripModel {
     return filteredWaypoints;
   }
 
+  getRawWaypoints() {
+    return [...this._waypoints];
+  }
+
+  updateWaypoint(updatedWaypoint) {
+    const index = this._waypoints.findIndex(waypoint => waypoint.id === updatedWaypoint.id);
+    if (index !== -1) {
+      this._waypoints[index] = { ...this._waypoints[index], ...updatedWaypoint };
+      this._notifyObservers();
+      return true;
+    }
+    return false;
+  }
+
+  addWaypoint(waypoint) {
+    this._waypoints.push(waypoint);
+    this._notifyObservers();
+    return true;
+  }
+
+  deleteWaypoint(waypointId) {
+    const index = this._waypoints.findIndex(waypoint => waypoint.id === waypointId);
+    if (index !== -1) {
+      this._waypoints.splice(index, 1);
+      this._notifyObservers();
+      return true;
+    }
+    return false;
+  }
+
   getDestinations() {
     return this._destinations;
   }
@@ -63,6 +100,10 @@ export default class TripModel {
 
   getDestinationById(id) {
     return this._destinations.find(dest => dest.id === id);
+  }
+
+  getDestinationByName(name) {
+    return this._destinations.find(dest => dest.name === name);
   }
 
   getAllOffers() {
@@ -76,7 +117,7 @@ export default class TripModel {
     const hasFuture = this._waypoints.some(waypoint => {
       const waypointDate = new Date(waypoint.dateFrom);
       waypointDate.setHours(0, 0, 0, 0);
-      return waypointDate > now;
+      return waypointDate >= now;
     });
     
     const hasPast = this._waypoints.some(waypoint => {
@@ -90,19 +131,22 @@ export default class TripModel {
         type: 'everything',
         name: 'Everything',
         isActive: this._activeFilter === 'everything',
-        isDisabled: false
+        isDisabled: false,
+        emptyMessage: 'Click New Event to create your first point'
       },
       {
         type: 'future',
         name: 'Future',
         isActive: this._activeFilter === 'future',
-        isDisabled: !hasFuture
+        isDisabled: !hasFuture,
+        emptyMessage: 'There are no future events now'
       },
       {
         type: 'past',
         name: 'Past',
         isActive: this._activeFilter === 'past',
-        isDisabled: !hasPast
+        isDisabled: !hasPast,
+        emptyMessage: 'There are no past events now'
       }
     ];
   }
@@ -143,11 +187,18 @@ export default class TripModel {
   }
 
   setFilter(filterType) {
-    this._activeFilter = filterType;
+    if (this._activeFilter !== filterType) {
+      this._activeFilter = filterType;
+      this._activeSort = 'day'; // Сбрасываем сортировку при смене фильтра
+      this._notifyObservers();
+    }
   }
 
   setSort(sortType) {
-    this._activeSort = sortType;
+    if (this._activeSort !== sortType) {
+      this._activeSort = sortType;
+      this._notifyObservers();
+    }
   }
 
   getActiveFilter() {
