@@ -3,6 +3,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
+  mode: 'development',
   entry: './src/main.js',
   output: {
     filename: 'bundle.[contenthash].js',
@@ -22,9 +23,8 @@ module.exports = {
           },
         },
       },
-      // ДОБАВЬТЕ ЭТО ПРАВИЛО ДЛЯ CSS:
       {
-        test: /\.css$/i,
+        test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
     ],
@@ -32,17 +32,22 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: './public/index.html',
+      filename: 'index.html',
     }),
     new CopyWebpackPlugin({
       patterns: [
-        {
-          from: 'public',
-          to: 'build',
-          globOptions: {
-            ignore: ['**/index.html'],
-          },
-        },
+        { from: 'public/img', to: 'img' },
+        { from: 'public/css', to: 'css' },
+        { from: 'public/fonts', to: 'fonts' },
       ],
     }),
   ],
+  devServer: {
+    static: {
+      directory: path.join(__dirname, 'build'),
+    },
+    port: 8082,
+    open: true,
+    hot: true,
+  },
 };

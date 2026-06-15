@@ -20,7 +20,9 @@ export default class TripInfoPresenter {
   }
 
   _renderTripInfo() {
-    if (!this._container) return;
+    if (!this._container) {
+      return;
+    }
 
     const waypoints = this._tripModel.getWaypoints();
 

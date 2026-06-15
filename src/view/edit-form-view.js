@@ -68,7 +68,9 @@ export default class EditFormView extends AbstractStatefulView {
     const pictures = destination?.pictures || [];
 
     const formatDateTimeLocal = (dateString) => {
-      if (!dateString) return '';
+      if (!dateString) {
+        return '';
+      }
       return dayjs(dateString).format('YYYY-MM-DDTHH:mm');
     };
 
@@ -200,7 +202,7 @@ export default class EditFormView extends AbstractStatefulView {
     const currentType = typeSelect?.value || 'flight';
     const destinationId = destinationSelect?.value || '';
 
-    let price = priceInput ? (parseInt(priceInput.value, 10) || 0) : 0;
+    const price = priceInput ? (parseInt(priceInput.value, 10) || 0) : 0;
 
     let dateFrom = '';
     let dateTo = '';
@@ -258,7 +260,9 @@ export default class EditFormView extends AbstractStatefulView {
 
   _shakeForm() {
     const form = this.element.querySelector('form');
-    if (!form) return;
+    if (!form) {
+      return;
+    }
 
     form.classList.add('shake');
     setTimeout(() => {
@@ -273,13 +277,17 @@ export default class EditFormView extends AbstractStatefulView {
 
   _handleDeleteClick(evt) {
     evt.preventDefault();
-    if (this._onDeleteClick) this._onDeleteClick();
+    if (this._onDeleteClick) {
+      this._onDeleteClick();
+    }
   }
 
   _handleTypeChange(evt) {
     const newType = evt.target.value;
 
-    if (newType === this._state.type) return;
+    if (newType === this._state.type) {
+      return;
+    }
 
     this.updateElement({ type: newType, selectedOfferIds: [] });
   }
@@ -293,13 +301,17 @@ export default class EditFormView extends AbstractStatefulView {
 
   _handlePriceChange(evt) {
     let value = parseInt(evt.target.value, 10);
-    if (isNaN(value)) value = MIN_PRICE;
+    if (isNaN(value)) {
+      value = MIN_PRICE;
+    }
 
     if (value > MAX_PRICE) {
       this._shakeForm();
       value = MAX_PRICE;
     }
-    if (value < MIN_PRICE) value = MIN_PRICE;
+    if (value < MIN_PRICE) {
+      value = MIN_PRICE;
+    }
 
     this._state.basePrice = value;
   }
@@ -322,7 +334,9 @@ export default class EditFormView extends AbstractStatefulView {
     const offerId = evt.target.value;
     let selectedOfferIds = [...this._state.selectedOfferIds];
     if (evt.target.checked) {
-      if (!selectedOfferIds.includes(offerId)) selectedOfferIds.push(offerId);
+      if (!selectedOfferIds.includes(offerId)) {
+        selectedOfferIds.push(offerId);
+      }
     } else {
       selectedOfferIds = selectedOfferIds.filter((id) => id !== offerId);
     }
@@ -358,8 +372,12 @@ export default class EditFormView extends AbstractStatefulView {
   }
 
   _destroyDatepickers() {
-    if (this._datepickerFrom) this._datepickerFrom.destroy();
-    if (this._datepickerTo) this._datepickerTo.destroy();
+    if (this._datepickerFrom) {
+      this._datepickerFrom.destroy();
+    }
+    if (this._datepickerTo) {
+      this._datepickerTo.destroy();
+    }
     this._datepickerFrom = null;
     this._datepickerTo = null;
   }
@@ -374,34 +392,54 @@ export default class EditFormView extends AbstractStatefulView {
     const startInput = this.element.querySelector('[data-start-date]');
     const endInput = this.element.querySelector('[data-end-date]');
 
-    if (form) form.addEventListener('submit', this._handleFormSubmit);
-    if (cancelBtn) cancelBtn.addEventListener('click', this._handleCancelClick);
-    if (deleteBtn) deleteBtn.addEventListener('click', this._handleDeleteClick);
+    if (form) {
+      form.addEventListener('submit', this._handleFormSubmit);
+    }
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', this._handleCancelClick);
+    }
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', this._handleDeleteClick);
+    }
     if (typeSelect) {
       typeSelect.removeEventListener('change', this._handleTypeChange);
       typeSelect.addEventListener('change', this._handleTypeChange);
     }
-    if (destinationSelect) destinationSelect.addEventListener('change', this._handleDestinationChange);
-    if (priceInput) priceInput.addEventListener('change', this._handlePriceChange);
-    if (startInput) startInput.addEventListener('change', this._handleDateFromChange);
-    if (endInput) endInput.addEventListener('change', this._handleDateToChange);
+    if (destinationSelect) {
+      destinationSelect.addEventListener('change', this._handleDestinationChange);
+    }
+    if (priceInput) {
+      priceInput.addEventListener('change', this._handlePriceChange);
+    }
+    if (startInput) {
+      startInput.addEventListener('change', this._handleDateFromChange);
+    }
+    if (endInput) {
+      endInput.addEventListener('change', this._handleDateToChange);
+    }
 
     this._initDatepickers();
   }
 
   setFormSubmitHandler() {
     const form = this.element.querySelector('form');
-    if (form) form.addEventListener('submit', this._handleFormSubmit);
+    if (form) {
+      form.addEventListener('submit', this._handleFormSubmit);
+    }
   }
 
   setCancelClickHandler() {
     const btn = this.element.querySelector('.event__reset-btn');
-    if (btn) btn.addEventListener('click', this._handleCancelClick);
+    if (btn) {
+      btn.addEventListener('click', this._handleCancelClick);
+    }
   }
 
   setDeleteClickHandler() {
     const btn = this.element.querySelector('.event__delete-btn');
-    if (btn) btn.addEventListener('click', this._handleDeleteClick);
+    if (btn) {
+      btn.addEventListener('click', this._handleDeleteClick);
+    }
   }
 
   updateElement(update) {

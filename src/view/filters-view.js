@@ -1,26 +1,19 @@
 import AbstractView from '../framework/view/abstract-view.js';
 
-const createFilterTemplate = (filters) => {
-  return `
-    <form class="trip-filters" action="#" method="get">
-      ${filters.map(filter => `
-        <div class="trip-filters__filter">
-          <input
-            id="filter-${filter.type}"
-            class="trip-filters__filter-input visually-hidden"
-            type="radio"
-            name="trip-filter"
-            value="${filter.type}"
-            ${filter.isActive ? 'checked' : ''}
-            ${filter.isDisabled ? 'disabled' : ''}
-          >
-          <label class="trip-filters__filter-label" for="filter-${filter.type}">${filter.name}</label>
-        </div>
-      `).join('')}
-      <button class="visually-hidden" type="submit">Accept filter</button>
-    </form>
-  `;
-};
+const createFilterTemplate = (filters) => filters.map((filter) => `
+  <div class="trip-filters__filter">
+    <input
+      id="filter-${filter.type}"
+      class="trip-filters__filter-input visually-hidden"
+      type="radio"
+      name="trip-filter"
+      value="${filter.type}"
+      ${filter.isActive ? 'checked' : ''}
+      ${filter.isDisabled ? 'disabled' : ''}
+    >
+    <label class="trip-filters__filter-label" for="filter-${filter.type}">${filter.name}</label>
+  </div>
+`).join('');
 
 export default class FiltersView extends AbstractView {
   constructor(filters, onFilterChange) {
@@ -31,7 +24,12 @@ export default class FiltersView extends AbstractView {
   }
 
   get template() {
-    return createFilterTemplate(this._filters);
+    return `
+      <form class="trip-filters" action="#" method="get">
+        ${createFilterTemplate(this._filters)}
+        <button class="visually-hidden" type="submit">Accept filter</button>
+      </form>
+    `;
   }
 
   _handleFilterChange(evt) {
@@ -43,7 +41,7 @@ export default class FiltersView extends AbstractView {
 
   setEventListeners() {
     const filterElements = this.element.querySelectorAll('.trip-filters__filter-input');
-    filterElements.forEach(filter => {
+    filterElements.forEach((filter) => {
       filter.addEventListener('change', this._handleFilterChange);
     });
   }
