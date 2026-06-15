@@ -14,7 +14,9 @@ const createTripInfoTemplate = (destinations, startDate, endDate, totalPrice, to
   }
 
   const formatDate = (date) => {
-    if (!date) return '';
+    if (!date) {
+      return '';
+    }
     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
@@ -46,6 +48,12 @@ export default class TripInfoView extends AbstractView {
   }
 
   get template() {
-    return createTripInfoTemplate(this._destinations, this._startDate, this._endDate, this._totalPrice, this._totalCitiesCount);
+    return createTripInfoTemplate(
+      this._destinations,
+      this._startDate,
+      this._endDate,
+      this._totalPrice,
+      this._totalCitiesCount,
+    );
   }
 }

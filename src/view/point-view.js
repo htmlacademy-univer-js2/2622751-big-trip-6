@@ -7,7 +7,7 @@ dayjs.extend(duration);
 const DEFAULT_DESTINATION = {
   name: 'Unknown destination',
   description: 'No description available',
-  pictures: []
+  pictures: [],
 };
 
 const getDuration = (dateFrom, dateTo) => {
@@ -27,13 +27,9 @@ const getDuration = (dateFrom, dateTo) => {
   return `${minutes.toString().padStart(2, '0')}m`;
 };
 
-const getFormattedDate = (date) => {
-  return dayjs(date).format('MMM D').toUpperCase();
-};
+const getFormattedDate = (date) => dayjs(date).format('MMM D').toUpperCase();
 
-const getFormattedTime = (date) => {
-  return dayjs(date).format('HH:mm');
-};
+const getFormattedTime = (date) => dayjs(date).format('HH:mm');
 
 export default class PointView extends AbstractView {
   constructor(waypoint, destination, offers, onEditClick) {
@@ -46,7 +42,7 @@ export default class PointView extends AbstractView {
       this._destination = {
         name: destination.name || DEFAULT_DESTINATION.name,
         description: destination.description || DEFAULT_DESTINATION.description,
-        pictures: Array.isArray(destination.pictures) ? destination.pictures : DEFAULT_DESTINATION.pictures
+        pictures: Array.isArray(destination.pictures) ? destination.pictures : DEFAULT_DESTINATION.pictures,
       };
     }
 
@@ -71,7 +67,7 @@ export default class PointView extends AbstractView {
     const endTime = getFormattedTime(dateTo);
     const durationTime = getDuration(dateFrom, dateTo);
 
-    const offersHtml = this._offers.slice(0, 3).map(offer => `
+    const offersHtml = this._offers.slice(0, 3).map((offer) => `
       <li class="event__offer">
         <span class="event__offer-title">${offer.title}</span>
         +€${offer.price}
@@ -124,7 +120,9 @@ export default class PointView extends AbstractView {
   }
 
   _escapeHtml(str) {
-    if (!str) return '';
+    if (!str) {
+      return '';
+    }
     return String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')

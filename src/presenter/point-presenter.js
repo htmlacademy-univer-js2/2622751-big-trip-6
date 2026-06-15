@@ -45,7 +45,9 @@ export default class PointPresenter {
   }
 
   openEditForm() {
-    if (this.isEditMode || this.isSaving) return;
+    if (this.isEditMode || this.isSaving) {
+      return;
+    }
 
     if (this.onModeChange) {
       this.onModeChange();
@@ -63,7 +65,9 @@ export default class PointPresenter {
       this.destination,
       this.allOffers,
       async (state) => {
-        if (this.isSaving) return;
+        if (this.isSaving) {
+          return;
+        }
 
         const updatedWaypoint = {
           ...this.waypoint,
@@ -108,7 +112,9 @@ export default class PointPresenter {
         this.closeEditForm();
       },
       async () => {
-        if (this.isSaving) return;
+        if (this.isSaving) {
+          return;
+        }
 
         this.isSaving = true;
         this._showDeletingState();
@@ -180,7 +186,9 @@ export default class PointPresenter {
   }
 
   _restoreButtonState() {
-    if (!this.editFormComponent) return;
+    if (!this.editFormComponent) {
+      return;
+    }
 
     const saveBtn = this.editFormComponent.element.querySelector('.event__save-btn');
     if (saveBtn) {
@@ -208,7 +216,9 @@ export default class PointPresenter {
   }
 
   _updatePointComponent() {
-    if (!this.pointComponent?.element?.parentElement) return;
+    if (!this.pointComponent?.element?.parentElement) {
+      return;
+    }
 
     if (this._getDestinationCallback) {
       const freshDestination = this._getDestinationCallback(this.waypoint.destinationId);
@@ -239,7 +249,9 @@ export default class PointPresenter {
   }
 
   closeEditForm() {
-    if (!this.isEditMode || this.isSaving) return;
+    if (!this.isEditMode || this.isSaving) {
+      return;
+    }
 
     const formElement = this.editFormComponent.element;
     const parent = formElement.parentElement;
@@ -256,7 +268,9 @@ export default class PointPresenter {
 
   setFavoriteClickHandler() {
     this.pointComponent.setFavoriteClickHandler(async () => {
-      if (this.isSaving) return;
+      if (this.isSaving) {
+        return;
+      }
 
       const updatedWaypoint = {
         ...this.waypoint,

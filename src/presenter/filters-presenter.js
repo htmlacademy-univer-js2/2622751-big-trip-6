@@ -12,7 +12,9 @@ export default class FiltersPresenter {
   }
 
   init() {
-    if (this._isInitialized) return;
+    if (this._isInitialized) {
+      return;
+    }
 
     this._tripModel.addObserver(this._handleModelChange);
     this._renderFilters();

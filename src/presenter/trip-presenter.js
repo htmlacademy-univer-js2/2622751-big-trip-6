@@ -37,7 +37,9 @@ export default class TripPresenter {
   }
 
   createNewPoint() {
-    if (this.isNewPointMode) return;
+    if (this.isNewPointMode) {
+      return;
+    }
 
     this.handleModeChange();
     this.tripModel.setFilter('everything');
@@ -45,7 +47,9 @@ export default class TripPresenter {
     this.tripModel.setSort('day');
 
     const destinations = this.tripModel.getDestinations();
-    if (destinations.length === 0) return;
+    if (destinations.length === 0) {
+      return;
+    }
 
     const firstDestination = destinations[0];
 
@@ -57,7 +61,7 @@ export default class TripPresenter {
       dateTo: new Date(Date.now() + 3600000).toISOString(),
       basePrice: 100,
       optionsIds: [],
-      isFavorite: false
+      isFavorite: false,
     };
 
     const newDestination = this.tripModel.getDestinationById(newWaypoint.destinationId);
@@ -66,10 +70,14 @@ export default class TripPresenter {
     const allDestinations = this.tripModel.getDestinations();
 
     const pointsContainer = document.querySelector('.trip-events');
-    if (!pointsContainer) return;
+    if (!pointsContainer) {
+      return;
+    }
 
     const emptyMessage = pointsContainer.querySelector('.trip-events__msg');
-    if (emptyMessage) emptyMessage.remove();
+    if (emptyMessage) {
+      emptyMessage.remove();
+    }
 
     const pointPresenter = new PointPresenter(
       pointsContainer,
@@ -87,8 +95,8 @@ export default class TripPresenter {
         return result;
       },
       () => this.handleModeChange(),
-      async (waypoint) => {
-        const result = await this.tripModel.deleteWaypoint(waypoint.id);
+      async (deletedWaypoint) => {
+        const result = await this.tripModel.deleteWaypoint(deletedWaypoint.id);
         if (result.success) {
           this.isNewPointMode = false;
           this.renderTripEvents();
@@ -96,12 +104,12 @@ export default class TripPresenter {
         return result;
       },
       allOffers,
-      allDestinations
+      allDestinations,
     );
 
     pointPresenter.setCallbacks(
       (id) => this.tripModel.getDestinationById(id),
-      (id) => this.tripModel.getOffersForWaypoint(id)
+      (id) => this.tripModel.getOffersForWaypoint(id),
     );
 
     pointPresenter.init(newWaypoint, newDestination, offers);
@@ -120,7 +128,9 @@ export default class TripPresenter {
 
   renderSort() {
     this.sortComponent = new SortView(this.currentSortType, (sortType) => {
-      if (this.currentSortType === sortType) return;
+      if (this.currentSortType === sortType) {
+        return;
+      }
       this.currentSortType = sortType;
       this.tripModel.setSort(sortType);
     });
@@ -138,10 +148,14 @@ export default class TripPresenter {
 
   renderTripEvents() {
     const pointsContainer = document.querySelector('.trip-events');
-    if (!pointsContainer) return;
+    if (!pointsContainer) {
+      return;
+    }
 
-    this.pointPresenters.forEach(presenter => {
-      if (presenter.destroy) presenter.destroy();
+    this.pointPresenters.forEach((presenter) => {
+      if (presenter.destroy) {
+        presenter.destroy();
+      }
     });
     this.pointPresenters = [];
 
@@ -158,7 +172,7 @@ export default class TripPresenter {
 
     const waypoints = this.tripModel.getWaypoints();
     const activeFilter = this.tripModel.getActiveFilter();
-    const filter = this.tripModel.getFilters().find(f => f.type === activeFilter);
+    const filter = this.tripModel.getFilters().find((f) => f.type === activeFilter);
     const emptyMessage = filter ? filter.emptyMessage : 'Click New Event to create your first point';
 
     if (waypoints.length === 0 && !this.isNewPointMode) {
@@ -170,8 +184,8 @@ export default class TripPresenter {
       this.renderSort();
     }
 
-    waypoints.forEach((waypoint) => {
-      this.renderPoint(waypoint, pointsContainer);
+    waypoints.forEach((point) => {
+      this.renderPoint(point, pointsContainer);
     });
   }
 
@@ -198,20 +212,20 @@ export default class TripPresenter {
         return result;
       },
       () => this.handleModeChange(),
-      async (waypoint) => {
-        const result = await this.tripModel.deleteWaypoint(waypoint.id);
+      async (deletedWaypoint) => {
+        const result = await this.tripModel.deleteWaypoint(deletedWaypoint.id);
         if (result.success) {
           this.renderTripEvents();
         }
         return result;
       },
       allOffers,
-      allDestinations
+      allDestinations,
     );
 
     pointPresenter.setCallbacks(
       (id) => this.tripModel.getDestinationById(id),
-      (id) => this.tripModel.getOffersForWaypoint(id)
+      (id) => this.tripModel.getOffersForWaypoint(id),
     );
 
     pointPresenter.init(waypoint, destination, offers);
@@ -219,7 +233,7 @@ export default class TripPresenter {
   }
 
   handleModeChange() {
-    this.pointPresenters.forEach(presenter => {
+    this.pointPresenters.forEach((presenter) => {
       if (presenter && typeof presenter.resetView === 'function') {
         presenter.resetView();
       }

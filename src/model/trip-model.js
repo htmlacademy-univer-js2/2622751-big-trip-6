@@ -27,11 +27,13 @@ export default class TripModel {
   }
 
   _notifyObservers() {
-    this._observers.forEach(observer => observer());
+    this._observers.forEach((observer) => observer());
   }
 
   async init() {
-    if (!this._api) return;
+    if (!this._api) {
+      return;
+    }
 
     this._isLoading = true;
     this._notifyObservers();
@@ -47,9 +49,9 @@ export default class TripModel {
       this._destinations = destinations;
 
       this._allOffers = [];
-      offers.forEach(typeOffer => {
+      offers.forEach((typeOffer) => {
         if (typeOffer.offers) {
-          typeOffer.offers.forEach(offer => {
+          typeOffer.offers.forEach((offer) => {
             this._allOffers.push({
               id: offer.id,
               title: offer.title,
@@ -85,14 +87,14 @@ export default class TripModel {
 
     switch (this._activeFilter) {
       case 'future':
-        filteredWaypoints = filteredWaypoints.filter(waypoint => {
+        filteredWaypoints = filteredWaypoints.filter((waypoint) => {
           const waypointDate = new Date(waypoint.dateFrom);
           waypointDate.setHours(0, 0, 0, 0);
           return waypointDate >= now;
         });
         break;
       case 'present':
-        filteredWaypoints = filteredWaypoints.filter(waypoint => {
+        filteredWaypoints = filteredWaypoints.filter((waypoint) => {
           const startDate = new Date(waypoint.dateFrom);
           const endDate = new Date(waypoint.dateTo);
           const today = new Date();
@@ -103,7 +105,7 @@ export default class TripModel {
         });
         break;
       case 'past':
-        filteredWaypoints = filteredWaypoints.filter(waypoint => {
+        filteredWaypoints = filteredWaypoints.filter((waypoint) => {
           const waypointDate = new Date(waypoint.dateTo);
           waypointDate.setHours(0, 0, 0, 0);
           return waypointDate < now;
@@ -130,7 +132,7 @@ export default class TripModel {
   async updateWaypoint(updatedWaypoint) {
     try {
       const updatedPoint = await this._api.updatePoint(updatedWaypoint);
-      const index = this._waypoints.findIndex(waypoint => waypoint.id === updatedPoint.id);
+      const index = this._waypoints.findIndex((waypoint) => waypoint.id === updatedPoint.id);
       if (index !== -1) {
         this._waypoints[index] = updatedPoint;
         this._notifyObservers();
@@ -155,7 +157,7 @@ export default class TripModel {
   async deleteWaypoint(waypointId) {
     try {
       await this._api.deletePoint(waypointId);
-      const index = this._waypoints.findIndex(waypoint => waypoint.id === waypointId);
+      const index = this._waypoints.findIndex((waypoint) => waypoint.id === waypointId);
       if (index !== -1) {
         this._waypoints.splice(index, 1);
         this._notifyObservers();
@@ -171,17 +173,21 @@ export default class TripModel {
   }
 
   getOffersForWaypoint(waypointId) {
-    const waypoint = this._waypoints.find(w => w.id === waypointId);
-    if (!waypoint || !waypoint.optionsIds) return [];
+    const waypoint = this._waypoints.find((w) => w.id === waypointId);
+    if (!waypoint || !waypoint.optionsIds) {
+      return [];
+    }
 
-    return this._allOffers.filter(offer =>
+    return this._allOffers.filter((offer) =>
       waypoint.optionsIds.includes(offer.id)
     );
   }
 
   getDestinationById(id) {
-    if (!id) return { name: 'Unknown', description: '', pictures: [] };
-    const destination = this._destinations.find(dest => dest.id === id);
+    if (!id) {
+      return { name: 'Unknown', description: '', pictures: [] };
+    }
+    const destination = this._destinations.find((dest) => dest.id === id);
     return destination || { name: 'Unknown', description: '', pictures: [] };
   }
 
@@ -193,19 +199,19 @@ export default class TripModel {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
-    const hasFuture = this._waypoints.some(waypoint => {
+    const hasFuture = this._waypoints.some((waypoint) => {
       const waypointDate = new Date(waypoint.dateFrom);
       waypointDate.setHours(0, 0, 0, 0);
       return waypointDate >= now;
     });
 
-    const hasPast = this._waypoints.some(waypoint => {
+    const hasPast = this._waypoints.some((waypoint) => {
       const waypointDate = new Date(waypoint.dateTo);
       waypointDate.setHours(0, 0, 0, 0);
       return waypointDate < now;
     });
 
-    const hasPresent = this._waypoints.some(waypoint => {
+    const hasPresent = this._waypoints.some((waypoint) => {
       const startDate = new Date(waypoint.dateFrom);
       const endDate = new Date(waypoint.dateTo);
       const today = new Date();

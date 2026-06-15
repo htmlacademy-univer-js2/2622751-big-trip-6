@@ -9,7 +9,7 @@ export const WaypointType = {
   FLIGHT: 'flight',
   CHECK_IN: 'check-in',
   SIGHTSEEING: 'sightseeing',
-  RESTAURANT: 'restaurant'
+  RESTAURANT: 'restaurant',
 };
 
 const cities = ['Chamonix', 'Geneva', 'Paris', 'Amsterdam', 'Berlin', 'Rome', 'London'];
@@ -33,7 +33,7 @@ const descriptionParagraphs = [
   'Sed sed nisi sed augue convallis suscipit in sed felis.',
   'Aliquam erat volutpat.',
   'Nunc fermentum tortor ac porta dapibus.',
-  'In rutrum ac purus sit amet tempus.'
+  'In rutrum ac purus sit amet tempus.',
 ];
 
 const generateDestination = (id, name) => ({
@@ -42,8 +42,8 @@ const generateDestination = (id, name) => ({
   description: descriptionParagraphs.slice(0, getRandomInt(1, 5)).join(' '),
   pictures: Array.from({ length: getRandomInt(1, 4) }, (_, idx) => ({
     src: `https://loremflickr.com/248/152?random=${id * 100 + idx}`,
-    description: `${name} view ${idx + 1}`
-  }))
+    description: `${name} view ${idx + 1}`,
+  })),
 });
 
 const generateOffers = (waypointId) => {
@@ -51,7 +51,7 @@ const generateOffers = (waypointId) => {
   return Array.from({ length: getRandomInt(2, 4) }, (_, idx) => ({
     id: `${waypointId}-offer-${idx}`,
     title: offerTitles[idx % offerTitles.length],
-    price: getRandomInt(10, 150)
+    price: getRandomInt(10, 150),
   }));
 };
 
@@ -71,7 +71,7 @@ export const generateWaypoint = (index) => {
     dateFrom: startDate.toISOString(),
     dateTo: endDate.toISOString(),
     basePrice: getRandomInt(50, 500),
-    isFavorite: Math.random() > 0.8
+    isFavorite: Math.random() > 0.8,
   };
 };
 
@@ -99,15 +99,13 @@ export const generateMockData = () => {
   return { waypoints, destinations, offersByWaypoint };
 };
 
-export const generateAllOffers = () => {
-  return [
-    { id: 'offer-1', title: 'Add luggage', price: 50, type: 'default' },
-    { id: 'offer-2', title: 'Comfort class', price: 100, type: 'default' },
-    { id: 'offer-3', title: 'Meal', price: 30, type: 'default' },
-    { id: 'offer-4', title: 'Priority boarding', price: 20, type: 'default' },
-    { id: 'offer-5', title: 'Wi-Fi', price: 15, type: 'default' },
-    { id: 'offer-6', title: 'Transfer', price: 80, type: 'default' }
-  ];
-};
+export const generateAllOffers = () => [
+  { id: 'offer-1', title: 'Add luggage', price: 50, type: 'default' },
+  { id: 'offer-2', title: 'Comfort class', price: 100, type: 'default' },
+  { id: 'offer-3', title: 'Meal', price: 30, type: 'default' },
+  { id: 'offer-4', title: 'Priority boarding', price: 20, type: 'default' },
+  { id: 'offer-5', title: 'Wi-Fi', price: 15, type: 'default' },
+  { id: 'offer-6', title: 'Transfer', price: 80, type: 'default' },
+];
 
 export { generateId };
