@@ -3,18 +3,19 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/main.js',  // точка входа
+  mode: 'development',
+  entry: './src/main.js',
   output: {
-    filename: 'bundle.[contenthash].js',  // пока bundle.js
-    path: path.resolve(__dirname, 'build'),  // абсолютный путь к папке build
-    clean: true,  // очистка папки перед сборкой
+    filename: 'bundle.[contenthash].js',
+    path: path.resolve(__dirname, 'build'),
+    clean: true,
   },
-  devtool: 'source-map',  // генерация source maps
-    module: {
+  devtool: 'source-map',
+  module: {
     rules: [
       {
-        test: /\.js$/,  // применяем к файлам .js
-        exclude: /node_modules/,  // исключаем node_modules
+        test: /\.js$/,
+        exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
           options: {
@@ -22,22 +23,31 @@ module.exports = {
           },
         },
       },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
     ],
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: './public/index.html',  // путь к вашему HTML-шаблону
+      template: './public/index.html',
+      filename: 'index.html',
     }),
     new CopyWebpackPlugin({
       patterns: [
-        {
-          from: 'public',
-          to: 'build',
-          globOptions: {
-            ignore: ['**/index.html'],  // исключаем index.html из копирования (его создаёт HtmlWebpackPlugin)
-        },
-        },
+        { from: 'public/img', to: 'img' },
+        { from: 'public/css', to: 'css' },
+        { from: 'public/fonts', to: 'fonts' },
       ],
     }),
   ],
+  devServer: {
+    static: {
+      directory: path.join(__dirname, 'build'),
+    },
+    port: 8082,
+    open: true,
+    hot: true,
+  },
 };

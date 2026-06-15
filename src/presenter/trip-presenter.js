@@ -1,72 +1,243 @@
-import FiltersView from '../view/filters-view.js';
 import SortView from '../view/sort-view.js';
-import PointView from '../view/point-view.js';
-import EditFormView from '../view/edit-form-view.js';
-import { render, RenderPosition } from '../render.js';
+import EmptyListView from '../view/empty-list-view.js';
+import LoadingView from '../view/loading-view.js';
+import PointPresenter from './point-presenter.js';
+import { render, RenderPosition } from '../framework/render.js';
 
 export default class TripPresenter {
   constructor(container, tripModel) {
     this.container = container;
     this.tripModel = tripModel;
-    this.filtersComponent = null;
     this.sortComponent = null;
-    this.pointComponents = [];
+    this.emptyListComponent = null;
+    this.loadingComponent = null;
+    this.pointPresenters = [];
+    this.currentSortType = 'day';
+    this.isNewPointMode = false;
+
+    this.tripModel.addObserver(() => this.renderTripEvents());
   }
 
   init() {
-    this.renderFilters();
-    this.renderSort();
     this.renderTripEvents();
+    this.initNewEventButton();
   }
 
-  renderFilters() {
-    this.filtersComponent = new FiltersView();
-    const filtersContainer = document.querySelector('.trip-controls__filters');
-    if (filtersContainer) {
-      filtersContainer.innerHTML = '';
-      render(this.filtersComponent, filtersContainer);
+  initNewEventButton() {
+    const button = document.querySelector('.trip-main__event-add-btn');
+    if (button) {
+      const newButton = button.cloneNode(true);
+      button.parentNode.replaceChild(newButton, button);
+
+      newButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.createNewPoint();
+      });
     }
   }
 
+  createNewPoint() {
+    if (this.isNewPointMode) {
+      return;
+    }
+
+    this.handleModeChange();
+    this.tripModel.setFilter('everything');
+    this.currentSortType = 'day';
+    this.tripModel.setSort('day');
+
+    const destinations = this.tripModel.getDestinations();
+    if (destinations.length === 0) {
+      return;
+    }
+
+    const firstDestination = destinations[0];
+
+    const newWaypoint = {
+      id: null,
+      type: 'flight',
+      destinationId: firstDestination.id,
+      dateFrom: new Date().toISOString(),
+      dateTo: new Date(Date.now() + 3600000).toISOString(),
+      basePrice: 100,
+      optionsIds: [],
+      isFavorite: false,
+    };
+
+    const newDestination = this.tripModel.getDestinationById(newWaypoint.destinationId);
+    const offers = [];
+    const allOffers = this.tripModel.getAllOffers();
+    const allDestinations = this.tripModel.getDestinations();
+
+    const pointsContainer = document.querySelector('.trip-events');
+    if (!pointsContainer) {
+      return;
+    }
+
+    const emptyMessage = pointsContainer.querySelector('.trip-events__msg');
+    if (emptyMessage) {
+      emptyMessage.remove();
+    }
+
+    const pointPresenter = new PointPresenter(
+      pointsContainer,
+      async (updatedWaypoint, action) => {
+        let result;
+        if (action === 'create') {
+          result = await this.tripModel.createWaypoint(updatedWaypoint);
+          if (result.success) {
+            this.isNewPointMode = false;
+            this.renderTripEvents();
+          }
+        } else {
+          result = await this.tripModel.updateWaypoint(updatedWaypoint);
+        }
+        return result;
+      },
+      () => this.handleModeChange(),
+      async (deletedWaypoint) => {
+        const result = await this.tripModel.deleteWaypoint(deletedWaypoint.id);
+        if (result.success) {
+          this.isNewPointMode = false;
+          this.renderTripEvents();
+        }
+        return result;
+      },
+      allOffers,
+      allDestinations,
+    );
+
+    pointPresenter.setCallbacks(
+      (id) => this.tripModel.getDestinationById(id),
+      (id) => this.tripModel.getOffersForWaypoint(id),
+    );
+
+    pointPresenter.init(newWaypoint, newDestination, offers);
+    pointPresenter.openEditForm();
+
+    this.pointPresenters.push(pointPresenter);
+    this.isNewPointMode = true;
+
+    setTimeout(() => {
+      const newForm = document.querySelector('.event--edit');
+      if (newForm) {
+        newForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  }
+
   renderSort() {
-    this.sortComponent = new SortView();
+    this.sortComponent = new SortView(this.currentSortType, (sortType) => {
+      if (this.currentSortType === sortType) {
+        return;
+      }
+      this.currentSortType = sortType;
+      this.tripModel.setSort(sortType);
+    });
+
     const sortContainer = document.querySelector('.trip-events');
     if (sortContainer) {
+      const oldSort = sortContainer.querySelector('.trip-events__sort');
+      if (oldSort) {
+        oldSort.remove();
+      }
       render(this.sortComponent, sortContainer, RenderPosition.AFTERBEGIN);
+      this.sortComponent.setSortChangeHandler();
     }
   }
 
   renderTripEvents() {
     const pointsContainer = document.querySelector('.trip-events');
-    if (!pointsContainer) return;
+    if (!pointsContainer) {
+      return;
+    }
 
-    // Очищаем контейнер, но оставляем сортировку
-    const sortElement = this.sortComponent?.getElement();
+    this.pointPresenters.forEach((presenter) => {
+      if (presenter.destroy) {
+        presenter.destroy();
+      }
+    });
+    this.pointPresenters = [];
+
+    const sortElement = pointsContainer.querySelector('.trip-events__sort');
     pointsContainer.innerHTML = '';
     if (sortElement) {
       pointsContainer.appendChild(sortElement);
     }
 
+    if (this.tripModel.isLoading()) {
+      this.renderLoading(pointsContainer);
+      return;
+    }
+
     const waypoints = this.tripModel.getWaypoints();
-    
-    if (waypoints.length === 0) return;
+    const activeFilter = this.tripModel.getActiveFilter();
+    const filter = this.tripModel.getFilters().find((f) => f.type === activeFilter);
+    const emptyMessage = filter ? filter.emptyMessage : 'Click New Event to create your first point';
 
-    // Отрисовываем форму редактирования первой (на основе первой точки)
-    const firstWaypoint = waypoints[0];
-    const firstDestination = this.tripModel.getDestinationById(firstWaypoint.destinationId);
-    const firstOffers = this.tripModel.getOffersForWaypoint(firstWaypoint.id);
-    
-    const editForm = new EditFormView(firstWaypoint, firstDestination, firstOffers);
-    render(editForm, pointsContainer);
+    if (waypoints.length === 0 && !this.isNewPointMode) {
+      this.renderEmptyList(pointsContainer, emptyMessage);
+      return;
+    }
 
-    // Отрисовываем 3 точки маршрута
-    const waypointsToShow = waypoints.slice(0, 3);
-    waypointsToShow.forEach((waypoint) => {
-      const destination = this.tripModel.getDestinationById(waypoint.destinationId);
-      const offers = this.tripModel.getOffersForWaypoint(waypoint.id);
-      const pointView = new PointView(waypoint, destination, offers);
-      render(pointView, pointsContainer);
-      this.pointComponents.push(pointView);
+    if (waypoints.length > 0 && !pointsContainer.querySelector('.trip-events__sort')) {
+      this.renderSort();
+    }
+
+    waypoints.forEach((point) => {
+      this.renderPoint(point, pointsContainer);
     });
+  }
+
+  renderLoading(container) {
+    this.loadingComponent = new LoadingView();
+    render(this.loadingComponent, container);
+  }
+
+  renderEmptyList(container, message) {
+    this.emptyListComponent = new EmptyListView(message);
+    render(this.emptyListComponent, container);
+  }
+
+  renderPoint(waypoint, container) {
+    const destination = this.tripModel.getDestinationById(waypoint.destinationId);
+    const offers = this.tripModel.getOffersForWaypoint(waypoint.id);
+    const allOffers = this.tripModel.getAllOffers();
+    const allDestinations = this.tripModel.getDestinations();
+
+    const pointPresenter = new PointPresenter(
+      container,
+      async (updatedWaypoint) => {
+        const result = await this.tripModel.updateWaypoint(updatedWaypoint);
+        return result;
+      },
+      () => this.handleModeChange(),
+      async (deletedWaypoint) => {
+        const result = await this.tripModel.deleteWaypoint(deletedWaypoint.id);
+        if (result.success) {
+          this.renderTripEvents();
+        }
+        return result;
+      },
+      allOffers,
+      allDestinations,
+    );
+
+    pointPresenter.setCallbacks(
+      (id) => this.tripModel.getDestinationById(id),
+      (id) => this.tripModel.getOffersForWaypoint(id),
+    );
+
+    pointPresenter.init(waypoint, destination, offers);
+    this.pointPresenters.push(pointPresenter);
+  }
+
+  handleModeChange() {
+    this.pointPresenters.forEach((presenter) => {
+      if (presenter && typeof presenter.resetView === 'function') {
+        presenter.resetView();
+      }
+    });
+    this.isNewPointMode = false;
   }
 }
