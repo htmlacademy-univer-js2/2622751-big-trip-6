@@ -14,7 +14,7 @@ export default class TripPresenter {
     this.pointPresenters = [];
     this.currentSortType = 'day';
     this.isNewPointMode = false;
-    
+
     this.tripModel.addObserver(() => this.renderTripEvents());
   }
 
@@ -28,7 +28,7 @@ export default class TripPresenter {
     if (button) {
       const newButton = button.cloneNode(true);
       button.parentNode.replaceChild(newButton, button);
-      
+
       newButton.addEventListener('click', (e) => {
         e.preventDefault();
         this.createNewPoint();
@@ -38,15 +38,17 @@ export default class TripPresenter {
 
   createNewPoint() {
     if (this.isNewPointMode) return;
-    
+
     this.handleModeChange();
     this.tripModel.setFilter('everything');
-    
+    this.currentSortType = 'day';
+    this.tripModel.setSort('day');
+
     const destinations = this.tripModel.getDestinations();
     if (destinations.length === 0) return;
-    
+
     const firstDestination = destinations[0];
-    
+
     const newWaypoint = {
       id: null,
       type: 'flight',
@@ -57,17 +59,18 @@ export default class TripPresenter {
       optionsIds: [],
       isFavorite: false
     };
-    
+
     const newDestination = this.tripModel.getDestinationById(newWaypoint.destinationId);
     const offers = [];
     const allOffers = this.tripModel.getAllOffers();
-    
+    const allDestinations = this.tripModel.getDestinations();
+
     const pointsContainer = document.querySelector('.trip-events');
     if (!pointsContainer) return;
-    
+
     const emptyMessage = pointsContainer.querySelector('.trip-events__msg');
     if (emptyMessage) emptyMessage.remove();
-    
+
     const pointPresenter = new PointPresenter(
       pointsContainer,
       async (updatedWaypoint, action) => {
@@ -92,19 +95,27 @@ export default class TripPresenter {
         }
         return result;
       },
-      allOffers
+      allOffers,
+      allDestinations
     );
-    
+
     pointPresenter.setCallbacks(
       (id) => this.tripModel.getDestinationById(id),
       (id) => this.tripModel.getOffersForWaypoint(id)
     );
-    
+
     pointPresenter.init(newWaypoint, newDestination, offers);
     pointPresenter.openEditForm();
-    
+
     this.pointPresenters.push(pointPresenter);
     this.isNewPointMode = true;
+
+    setTimeout(() => {
+      const newForm = document.querySelector('.event--edit');
+      if (newForm) {
+        newForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
   }
 
   renderSort() {
@@ -178,7 +189,8 @@ export default class TripPresenter {
     const destination = this.tripModel.getDestinationById(waypoint.destinationId);
     const offers = this.tripModel.getOffersForWaypoint(waypoint.id);
     const allOffers = this.tripModel.getAllOffers();
-    
+    const allDestinations = this.tripModel.getDestinations();
+
     const pointPresenter = new PointPresenter(
       container,
       async (updatedWaypoint) => {
@@ -193,14 +205,15 @@ export default class TripPresenter {
         }
         return result;
       },
-      allOffers
+      allOffers,
+      allDestinations
     );
-    
+
     pointPresenter.setCallbacks(
       (id) => this.tripModel.getDestinationById(id),
       (id) => this.tripModel.getOffersForWaypoint(id)
     );
-    
+
     pointPresenter.init(waypoint, destination, offers);
     this.pointPresenters.push(pointPresenter);
   }

@@ -2,13 +2,14 @@ import PointView from '../view/point-view.js';
 import EditFormView from '../view/edit-form-view.js';
 
 export default class PointPresenter {
-  constructor(container, onDataChange, onModeChange, onDelete, allOffers) {
+  constructor(container, onDataChange, onModeChange, onDelete, allOffers, allDestinations) {
     this.container = container;
     this.onDataChange = onDataChange;
     this.onModeChange = onModeChange;
     this.onDelete = onDelete;
     this.allOffers = allOffers || [];
-    
+    this.allDestinations = allDestinations || [];
+
     this.pointComponent = null;
     this.editFormComponent = null;
     this.isEditMode = false;
@@ -30,14 +31,14 @@ export default class PointPresenter {
     this.waypoint = waypoint;
     this.destination = destination || { name: 'Unknown destination', description: '', pictures: [] };
     this.offers = offers || [];
-    
+
     this.pointComponent = new PointView(
-      waypoint, 
-      this.destination, 
+      waypoint,
+      this.destination,
       this.offers,
       () => this.openEditForm()
     );
-    
+
     this.container.appendChild(this.pointComponent.element);
     this.pointComponent.setEditClickHandler();
     this.setFavoriteClickHandler();
@@ -45,25 +46,25 @@ export default class PointPresenter {
 
   openEditForm() {
     if (this.isEditMode || this.isSaving) return;
-    
+
     if (this.onModeChange) {
       this.onModeChange();
     }
-    
+
     if (this._getDestinationCallback) {
       const freshDestination = this._getDestinationCallback(this.waypoint.destinationId);
       if (freshDestination && freshDestination.name !== 'Unknown destination') {
         this.destination = freshDestination;
       }
     }
-    
+
     this.editFormComponent = new EditFormView(
-      this.waypoint, 
-      this.destination, 
+      this.waypoint,
+      this.destination,
       this.allOffers,
       async (state) => {
         if (this.isSaving) return;
-        
+
         const updatedWaypoint = {
           ...this.waypoint,
           type: state.type,
@@ -74,20 +75,20 @@ export default class PointPresenter {
           optionsIds: [...state.selectedOfferIds],
           isFavorite: state.isFavorite
         };
-        
+
         this.isSaving = true;
         this._showSavingState();
-        
+
         try {
           const isNew = !this.waypoint.id;
           let result;
-          
+
           if (isNew) {
             result = await this.onDataChange(updatedWaypoint, 'create');
           } else {
             result = await this.onDataChange(updatedWaypoint, 'update');
           }
-          
+
           if (result && result.success) {
             this.waypoint = result.data || updatedWaypoint;
             this._updatePointComponent();
@@ -108,10 +109,10 @@ export default class PointPresenter {
       },
       async () => {
         if (this.isSaving) return;
-        
+
         this.isSaving = true;
         this._showDeletingState();
-        
+
         try {
           const result = await this.onDelete(this.waypoint);
           if (result && result.success) {
@@ -126,18 +127,19 @@ export default class PointPresenter {
           this._restoreButtonState();
           this.isSaving = false;
         }
-      }
+      },
+      this.allDestinations
     );
-    
+
     const pointElement = this.pointComponent.element;
     const parent = pointElement.parentElement;
-    
+
     parent.replaceChild(this.editFormComponent.element, pointElement);
-    
+
     this.editFormComponent.setFormSubmitHandler();
     this.editFormComponent.setCancelClickHandler();
     this.editFormComponent.setDeleteClickHandler();
-    
+
     this.escKeyHandler = (evt) => {
       if (evt.key === 'Escape' && !this.isSaving) {
         evt.preventDefault();
@@ -145,9 +147,9 @@ export default class PointPresenter {
       }
     };
     document.addEventListener('keydown', this.escKeyHandler);
-    
+
     this.isEditMode = true;
-    
+
     setTimeout(() => {
       this.editFormComponent.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
@@ -179,7 +181,7 @@ export default class PointPresenter {
 
   _restoreButtonState() {
     if (!this.editFormComponent) return;
-    
+
     const saveBtn = this.editFormComponent.element.querySelector('.event__save-btn');
     if (saveBtn) {
       saveBtn.textContent = 'Save';
@@ -193,26 +195,21 @@ export default class PointPresenter {
   }
 
   _showError() {
-  // Находим форму
-  const formElement = document.querySelector('.event--edit');
-  
-  if (formElement) {
-    // Принудительно добавляем анимацию
-    formElement.style.animation = 'shake 0.3s ease-in-out 0s 2';
-    formElement.style.backgroundColor = '#ffe0e0';
-    
-    setTimeout(() => {
-      formElement.style.animation = '';
-      formElement.style.backgroundColor = '';
-    }, 600);
+    const formElement = document.querySelector('.event--edit');
+    if (formElement) {
+      formElement.style.animation = 'shake 0.3s ease-in-out 0s 2';
+      formElement.style.backgroundColor = '#ffe0e0';
+      setTimeout(() => {
+        formElement.style.animation = '';
+        formElement.style.backgroundColor = '';
+      }, 600);
+    }
+    this._restoreButtonState();
   }
-  
-  this._restoreButtonState();
-}
 
   _updatePointComponent() {
     if (!this.pointComponent?.element?.parentElement) return;
-    
+
     if (this._getDestinationCallback) {
       const freshDestination = this._getDestinationCallback(this.waypoint.destinationId);
       if (freshDestination && freshDestination.name !== 'Unknown destination') {
@@ -225,15 +222,15 @@ export default class PointPresenter {
         this.offers = freshOffers;
       }
     }
-    
+
     const parent = this.pointComponent.element.parentElement;
     const newPointComponent = new PointView(
-      this.waypoint, 
-      this.destination, 
+      this.waypoint,
+      this.destination,
       this.offers,
       () => this.openEditForm()
     );
-    
+
     parent.replaceChild(newPointComponent.element, this.pointComponent.element);
     this.pointComponent.removeElement();
     this.pointComponent = newPointComponent;
@@ -243,29 +240,29 @@ export default class PointPresenter {
 
   closeEditForm() {
     if (!this.isEditMode || this.isSaving) return;
-    
+
     const formElement = this.editFormComponent.element;
     const parent = formElement.parentElement;
-    
+
     parent.replaceChild(this.pointComponent.element, formElement);
-    
+
     if (this.escKeyHandler) {
       document.removeEventListener('keydown', this.escKeyHandler);
       this.escKeyHandler = null;
     }
-    
+
     this.isEditMode = false;
   }
 
   setFavoriteClickHandler() {
     this.pointComponent.setFavoriteClickHandler(async () => {
       if (this.isSaving) return;
-      
+
       const updatedWaypoint = {
         ...this.waypoint,
         isFavorite: !this.waypoint.isFavorite
       };
-      
+
       this.isSaving = true;
       try {
         const result = await this.onDataChange(updatedWaypoint, 'update');
@@ -274,7 +271,7 @@ export default class PointPresenter {
           this._updatePointComponent();
         }
       } catch (error) {
-        console.error('Error updating favorite:', error);
+        this._showError();
       } finally {
         this.isSaving = false;
       }

@@ -32,7 +32,7 @@ export default class TripModel {
 
   async init() {
     if (!this._api) return;
-    
+
     this._isLoading = true;
     this._notifyObservers();
 
@@ -45,7 +45,7 @@ export default class TripModel {
 
       this._waypoints = waypoints;
       this._destinations = destinations;
-      
+
       this._allOffers = [];
       offers.forEach(typeOffer => {
         if (typeOffer.offers) {
@@ -59,11 +59,10 @@ export default class TripModel {
           });
         }
       });
-      
+
       this._isLoading = false;
       this._notifyObservers();
     } catch (error) {
-      console.error('Init error:', error);
       this._isLoading = false;
       this._isError = true;
       this._notifyObservers();
@@ -80,16 +79,27 @@ export default class TripModel {
 
   getWaypoints() {
     let filteredWaypoints = [...this._waypoints];
-    
+
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    
+
     switch (this._activeFilter) {
       case 'future':
         filteredWaypoints = filteredWaypoints.filter(waypoint => {
           const waypointDate = new Date(waypoint.dateFrom);
           waypointDate.setHours(0, 0, 0, 0);
           return waypointDate >= now;
+        });
+        break;
+      case 'present':
+        filteredWaypoints = filteredWaypoints.filter(waypoint => {
+          const startDate = new Date(waypoint.dateFrom);
+          const endDate = new Date(waypoint.dateTo);
+          const today = new Date();
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(0, 0, 0, 0);
+          today.setHours(0, 0, 0, 0);
+          return startDate <= today && endDate >= today;
         });
         break;
       case 'past':
@@ -99,11 +109,10 @@ export default class TripModel {
           return waypointDate < now;
         });
         break;
-      case 'everything':
       default:
         break;
     }
-    
+
     switch (this._activeSort) {
       case 'day':
         filteredWaypoints.sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
@@ -114,7 +123,7 @@ export default class TripModel {
       default:
         filteredWaypoints.sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
     }
-    
+
     return filteredWaypoints;
   }
 
@@ -128,7 +137,6 @@ export default class TripModel {
       }
       return { success: true, data: updatedPoint };
     } catch (error) {
-      console.error('Update error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -140,7 +148,6 @@ export default class TripModel {
       this._notifyObservers();
       return { success: true, data: newPoint };
     } catch (error) {
-      console.error('Create error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -155,7 +162,6 @@ export default class TripModel {
       }
       return { success: true };
     } catch (error) {
-      console.error('Delete error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -167,8 +173,8 @@ export default class TripModel {
   getOffersForWaypoint(waypointId) {
     const waypoint = this._waypoints.find(w => w.id === waypointId);
     if (!waypoint || !waypoint.optionsIds) return [];
-    
-    return this._allOffers.filter(offer => 
+
+    return this._allOffers.filter(offer =>
       waypoint.optionsIds.includes(offer.id)
     );
   }
@@ -186,19 +192,29 @@ export default class TripModel {
   getFilters() {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    
+
     const hasFuture = this._waypoints.some(waypoint => {
       const waypointDate = new Date(waypoint.dateFrom);
       waypointDate.setHours(0, 0, 0, 0);
       return waypointDate >= now;
     });
-    
+
     const hasPast = this._waypoints.some(waypoint => {
       const waypointDate = new Date(waypoint.dateTo);
       waypointDate.setHours(0, 0, 0, 0);
       return waypointDate < now;
     });
-    
+
+    const hasPresent = this._waypoints.some(waypoint => {
+      const startDate = new Date(waypoint.dateFrom);
+      const endDate = new Date(waypoint.dateTo);
+      const today = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      return startDate <= today && endDate >= today;
+    });
+
     return [
       {
         type: 'everything',
@@ -213,6 +229,13 @@ export default class TripModel {
         isActive: this._activeFilter === 'future',
         isDisabled: !hasFuture,
         emptyMessage: 'There are no future events now'
+      },
+      {
+        type: 'present',
+        name: 'Present',
+        isActive: this._activeFilter === 'present',
+        isDisabled: !hasPresent,
+        emptyMessage: 'There are no present events now'
       },
       {
         type: 'past',
