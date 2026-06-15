@@ -13,11 +13,11 @@ const DEFAULT_DESTINATION = {
 const getDuration = (dateFrom, dateTo) => {
   const diff = dayjs(dateTo).diff(dayjs(dateFrom));
   const dur = dayjs.duration(diff);
-  
+
   const days = Math.floor(dur.asDays());
   const hours = dur.hours();
   const minutes = dur.minutes();
-  
+
   if (days > 0) {
     return `${days.toString().padStart(2, '0')}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
   }
@@ -39,7 +39,7 @@ export default class PointView extends AbstractView {
   constructor(waypoint, destination, offers, onEditClick) {
     super();
     this._waypoint = waypoint;
-    
+
     if (!destination || typeof destination !== 'object') {
       this._destination = { ...DEFAULT_DESTINATION };
     } else {
@@ -49,10 +49,10 @@ export default class PointView extends AbstractView {
         pictures: Array.isArray(destination.pictures) ? destination.pictures : DEFAULT_DESTINATION.pictures
       };
     }
-    
+
     this._offers = offers || [];
     this._onEditClick = onEditClick;
-    
+
     this._handleEditClick = this._handleEditClick.bind(this);
     this._handleFavoriteClick = this._handleFavoriteClick.bind(this);
   }
@@ -62,10 +62,10 @@ export default class PointView extends AbstractView {
     if (!destination || typeof destination !== 'object') {
       destination = { ...DEFAULT_DESTINATION };
     }
-    
+
     const { type, dateFrom, dateTo, basePrice, isFavorite } = this._waypoint;
     const destinationName = destination.name || DEFAULT_DESTINATION.name;
-    
+
     const formattedDate = getFormattedDate(dateFrom);
     const startTime = getFormattedTime(dateFrom);
     const endTime = getFormattedTime(dateTo);
@@ -84,13 +84,13 @@ export default class PointView extends AbstractView {
       <li class="trip-events__item">
         <div class="event">
           <time class="event__date" datetime="${dateFrom}">${formattedDate}</time>
-          
+
           <div class="event__type">
             <img class="event__type-icon" width="42" height="42" src="img/icons/${type}.png" alt="Event type icon">
           </div>
-          
+
           <div class="event__title">${type} to ${this._escapeHtml(destinationName)}</div>
-          
+
           <div class="event__schedule">
             <p class="event__time">
               <time class="event__start-time" datetime="${dateFrom}">${startTime}</time>
@@ -99,22 +99,22 @@ export default class PointView extends AbstractView {
             </p>
             <p class="event__duration">${durationTime}</p>
           </div>
-          
+
           <div class="event__price">
             € ${basePrice}
           </div>
-          
+
           <ul class="event__selected-offers">
             ${offersHtml}
           </ul>
-          
+
           <button class="event__favorite-btn ${favoriteClass}" type="button">
             <span class="visually-hidden">Add to favorite</span>
             <svg class="event__favorite-icon" width="28" height="28" viewBox="0 0 28 28">
               <path d="M14 21l-8.228 4.326 1.572-9.162L.5 9.674l9.114-1.324L14 .5l4.386 7.85 9.114 1.324-6.844 6.49 1.572 9.162z"/>
             </svg>
           </button>
-          
+
           <button class="event__rollup-btn" type="button">
             <span class="visually-hidden">Open event details</span>
           </button>

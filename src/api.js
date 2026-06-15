@@ -18,7 +18,6 @@ export default class Api {
     return fetch(`${END_POINT}/${url}`, options)
       .then(response => {
         if (!response.ok) {
-          // АНИМАЦИЯ ПРИ ОШИБКЕ ОТ СЕРВЕРА
           const form = document.querySelector('.event--edit');
           if (form) {
             form.style.animation = 'shake 0.5s ease-in-out';
@@ -28,7 +27,6 @@ export default class Api {
               form.style.backgroundColor = '';
             }, 500);
           }
-          
           return response.json().then(err => {
             throw new Error(`${response.status}: ${JSON.stringify(err)}`);
           });
@@ -39,7 +37,6 @@ export default class Api {
         return response.json();
       })
       .catch(error => {
-        // АНИМАЦИЯ ПРИ ЛЮБОЙ ОШИБКЕ
         const form = document.querySelector('.event--edit');
         if (form) {
           form.style.animation = 'shake 0.5s ease-in-out';
